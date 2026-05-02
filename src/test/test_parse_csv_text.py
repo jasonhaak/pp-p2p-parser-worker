@@ -17,7 +17,7 @@ class TestParseCsvText(unittest.TestCase):
     def test_parse_csv_text_returns_portfolio_performance_csv(self):
         testdata = os.path.join(os.path.dirname(__file__), "testdata", "mintos.csv")
         with open(testdata, "r", encoding="utf-8-sig") as csv_input:
-            output = parse_csv_text(csv_input.read(), provider="mintos", aggregate="transaction")
+            output = parse_csv_text(csv_input.read(), provider="mintos_en", aggregate="transaction")
 
         self.assertTrue(output.startswith("Datum,Wert,Buchungswährung,Typ,Notiz"))
         self.assertIn("2018-01-17,20,EUR,Einlage,236659674: Incoming client payment", output)
@@ -25,6 +25,27 @@ class TestParseCsvText(unittest.TestCase):
     def test_parse_csv_text_rejects_unknown_provider(self):
         with self.assertRaises(ValueError):
             parse_csv_text("", provider="unknown", aggregate="transaction")
+
+    def test_parse_csv_text_auto_detects_provider(self):
+        testdata = os.path.join(os.path.dirname(__file__), "testdata", "mintos.csv")
+        with open(testdata, "r", encoding="utf-8-sig") as csv_input:
+            output = parse_csv_text(csv_input.read(), provider="auto", aggregate="transaction")
+
+        self.assertIn("236659674: Incoming client payment", output)
+
+    def test_detect_provider_from_csv_text(self):
+        testdata = os.path.join(os.path.dirname(__file__), "testdata", "mintos_de.csv")
+        with open(testdata, "r", encoding="utf-8-sig") as csv_input:
+            self.assertEqual("mintos_de", detect_provider_from_csv_text(csv_input.read()))
+
+    def test_parse_csv_text_reports_wrong_provider_headers(self):
+        testdata = os.path.join(os.path.dirname(__file__), "testdata", "mintos_de.csv")
+        with open(testdata, "r", encoding="utf-8-sig") as csv_input:
+            with self.assertRaises(ParserInputError) as context:
+                parse_csv_text(csv_input.read(), provider="mintos_en", aggregate="transaction")
+
+        self.assertIn("does not match provider 'mintos_en'", str(context.exception))
+        self.assertIn("looks like provider 'mintos_de'", str(context.exception))
 
     def test_parse_estateguru_de_csv_text(self):
         testdata = os.path.join(os.path.dirname(__file__), "testdata", "estateguru_de.csv")

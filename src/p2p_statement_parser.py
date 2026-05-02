@@ -22,7 +22,85 @@ logger = logging.getLogger(__name__)
 SUPPORTED_AGGREGATES = ["transaction", "daily", "monthly"]
 
 
-def parse_csv_text(csv_text, provider="mintos", aggregate="transaction"):
+class ParserInputError(ValueError):
+    """Raised when uploaded CSV content does not match the selected provider."""
+
+
+def get_csv_headers(csv_text):
+    """
+    Return the header row from uploaded CSV text.
+    """
+    if not csv_text or not csv_text.strip():
+        raise ParserInputError("The uploaded CSV file is empty.")
+
+    with io.StringIO(csv_text.lstrip("\ufeff")) as infile:
+        sample = infile.read(4096)
+        infile.seek(0)
+        try:
+            dialect = csv.Sniffer().sniff(sample)
+        except csv.Error as exc:
+            raise ParserInputError("The uploaded file is not a readable CSV file.") from exc
+
+        reader = csv.reader(infile, dialect=dialect)
+        try:
+            headers = next(reader)
+        except StopIteration as exc:
+            raise ParserInputError("The uploaded CSV file has no header row.") from exc
+
+    headers = [header.strip() for header in headers if header and header.strip()]
+    if not headers:
+        raise ParserInputError("The uploaded CSV file has no header row.")
+    return headers
+
+
+def get_required_headers(provider):
+    """
+    Return CSV headers required by a provider configuration.
+    """
+    csv_fieldnames = PROVIDER_CONFIGS[provider]["csv_fieldnames"]
+    required_keys = ["booking_date", "booking_details", "booking_id", "booking_type", "booking_value"]
+    if csv_fieldnames.get("booking_currency"):
+        required_keys.append("booking_currency")
+    return [csv_fieldnames[key] for key in required_keys]
+
+
+def detect_provider_from_csv_text(csv_text):
+    """
+    Detect a supported provider by matching the uploaded CSV header row.
+    """
+    headers = set(get_csv_headers(csv_text))
+    matches = []
+
+    for provider in PROVIDER_CONFIGS:
+        required_headers = set(get_required_headers(provider))
+        if required_headers.issubset(headers):
+            matches.append(provider)
+
+    if not matches:
+        return None
+    return matches[0]
+
+
+def validate_provider_headers(csv_text, provider):
+    """
+    Ensure uploaded CSV headers match the selected provider.
+    """
+    headers = set(get_csv_headers(csv_text))
+    required_headers = set(get_required_headers(provider))
+    missing_headers = sorted(required_headers - headers)
+
+    if missing_headers:
+        detected_provider = detect_provider_from_csv_text(csv_text)
+        message = (
+            "The uploaded CSV does not match provider '{}'. Missing required column(s): {}. "
+            "Found column(s): {}."
+        ).format(provider, ", ".join(missing_headers), ", ".join(sorted(headers)))
+        if detected_provider:
+            message += " The file looks like provider '{}'.".format(detected_provider)
+        raise ParserInputError(message)
+
+
+def parse_csv_text(csv_text, provider="mintos_en", aggregate="transaction"):
     """
     Parse uploaded account statement CSV content and return Portfolio Performance CSV content.
 

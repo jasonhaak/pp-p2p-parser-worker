@@ -17,7 +17,7 @@ class TestBaseParser(unittest.TestCase):
     def setUp(self):
         """test case setUp, run for each test case"""
         self.account_statement_file = os.path.join(os.path.dirname(__file__), "testdata", "mintos.csv")
-        self.config_file = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, "config", "mintos.yml")
+        self.config_file = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, "config", "mintos_en.yml")
         self.base_parser = PeerToPeerPlatformParser(infile=self.account_statement_file, config=self.config_file)
         self.maxDiff = None
 
@@ -31,7 +31,7 @@ class TestBaseParser(unittest.TestCase):
     def test_config_file(self):
         """test config file property"""
         self.assertEqual(
-            os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, "config", "mintos.yml"),
+            os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, "config", "mintos_en.yml"),
             self.base_parser.config_file,
         )
 
@@ -105,7 +105,7 @@ class TestBaseParser(unittest.TestCase):
         """test parse_account_statement for estateguru"""
         self.base_parser.account_statement_file = os.path.join(os.path.dirname(__file__), "testdata", "estateguru.csv")
         self.base_parser.config_file = os.path.join(
-            os.path.dirname(__file__), os.pardir, os.pardir, "config", "estateguru.yml"
+            os.path.dirname(__file__), os.pardir, os.pardir, "config", "estateguru_de_legacy.yml"
         )
         expected_statement = [
             {
@@ -185,7 +185,7 @@ class TestBaseParser(unittest.TestCase):
         """test parse_account_statement for mintos"""
         self.base_parser.account_statement_file = os.path.join(os.path.dirname(__file__), "testdata", "mintos.csv")
         self.base_parser.config_file = os.path.join(
-            os.path.dirname(__file__), os.pardir, os.pardir, "config", "mintos.yml"
+            os.path.dirname(__file__), os.pardir, os.pardir, "config", "mintos_en.yml"
         )
         expected_statement = [
             {
@@ -274,7 +274,7 @@ class TestBaseParser(unittest.TestCase):
         """test parse_account_statement for mintos"""
         self.base_parser.account_statement_file = os.path.join(os.path.dirname(__file__), "testdata", "mintos.csv")
         self.base_parser.config_file = os.path.join(
-            os.path.dirname(__file__), os.pardir, os.pardir, "config", "mintos.yml"
+            os.path.dirname(__file__), os.pardir, os.pardir, "config", "mintos_en.yml"
         )
         expected_statement = [
             {
@@ -354,7 +354,7 @@ class TestBaseParser(unittest.TestCase):
         """test parse_account_statement for mintos"""
         self.base_parser.account_statement_file = os.path.join(os.path.dirname(__file__), "testdata", "mintos.csv")
         self.base_parser.config_file = os.path.join(
-            os.path.dirname(__file__), os.pardir, os.pardir, "config", "mintos.yml"
+            os.path.dirname(__file__), os.pardir, os.pardir, "config", "mintos_en.yml"
         )
         expected_statement = [
             {
@@ -445,7 +445,7 @@ class TestBaseParser(unittest.TestCase):
             os.path.dirname(__file__), "testdata", "mintos_several_months.csv"
         )
         self.base_parser.config_file = os.path.join(
-            os.path.dirname(__file__), os.pardir, os.pardir, "config", "mintos.yml"
+            os.path.dirname(__file__), os.pardir, os.pardir, "config", "mintos_en.yml"
         )
         expected_statement = [
             {

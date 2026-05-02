@@ -54,7 +54,7 @@ PROVIDER_CONFIGS = {
             "booking_details": "Asset ID",
         },
     },
-    "estateguru": {
+    "estateguru_de_legacy": {
         "type_regex": {
             "deposit": "^Einzahlung.*",
             "withdraw": "^Auszahlung.*",
@@ -120,7 +120,7 @@ PROVIDER_CONFIGS = {
             "booking_value": "Amount",
         },
     },
-    "mintos": {
+    "mintos_en": {
         "type_regex": {
             "deposit": "(Deposits)|(^Incoming client.*)|(^Incoming currency exchange.*)|(^Affiliate partner bonus$)",
             "withdraw": "(^Withdraw application.*)|(Outgoing currency.*)|(Withdrawal)",

@@ -81,9 +81,9 @@ def parse_args():
             "bondora_go_grow",
             "bondora",
             "debitumnetwork",
-            "estateguru",
+            "estateguru_de_legacy",
             "estateguru_de",
-            "mintos",
+            "mintos_en",
             "mintos_de",
             "robocash",
             "swaper",
@@ -91,7 +91,7 @@ def parse_args():
             "viainvest",
             "estateguru_en",
         ],
-        default="mintos",
+        default="mintos_en",
     )
     arg_parser.add_argument(
         "--debug",
