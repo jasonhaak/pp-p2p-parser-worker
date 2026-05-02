@@ -7,16 +7,49 @@ Copyright 2018-04-29 ChrisRBe
 import calendar
 import codecs
 import csv
+import io
 import logging
+import os
 
-from yaml import safe_load
+try:
+    from yaml import safe_load
+except ImportError:
+    safe_load = None
 
 from src.p2p_config import Config
 from src.portfolio_writer import PP_FIELDNAMES
+from src.portfolio_writer import PortfolioPerformanceWriter
+from src.provider_configs import PROVIDER_CONFIGS
 from src.statement import Statement
 
 
 logger = logging.getLogger(__name__)
+SUPPORTED_AGGREGATES = ["transaction", "daily", "monthly"]
+
+
+def parse_csv_text(csv_text, provider="mintos", aggregate="transaction"):
+    """
+    Parse uploaded account statement CSV content and return Portfolio Performance CSV content.
+
+    :param csv_text: account statement CSV data as text
+    :param provider: supported P2P lending provider name
+    :param aggregate: transaction, daily, or monthly
+    :return: Portfolio Performance CSV data as text, or False if no matching statements were found
+    """
+    if provider not in PROVIDER_CONFIGS:
+        raise ValueError("The provided platform {} is currently not supported".format(provider))
+
+    platform_parser = PeerToPeerPlatformParser(config=PROVIDER_CONFIGS[provider])
+    statement_list = platform_parser.parse_account_statement_text(csv_text=csv_text, aggregate=aggregate)
+
+    if not statement_list:
+        return False
+
+    writer = PortfolioPerformanceWriter()
+    writer.init_output()
+    for entry in statement_list:
+        writer.update_output(entry)
+    return writer.get_output()
 
 
 class PeerToPeerPlatformParser(object):
@@ -25,7 +58,7 @@ class PeerToPeerPlatformParser(object):
     Actual configuration for the individual services is done via a yml config file.
     """
 
-    def __init__(self, config, infile):
+    def __init__(self, config, infile=None):
         """
         Constructor for PeerToPeerPlatformParser
         """
@@ -124,9 +157,60 @@ class PeerToPeerPlatformParser(object):
         """
         Parse the YAML configuration file containing specific settings for the individual p2p loan platform
         """
-        with open(self.config_file, "r", encoding="utf-8") as ymlconfig:
-            config = safe_load(ymlconfig)
-            self.config = Config(config)
+        if isinstance(self.config_file, dict):
+            self.config = Config(self.config_file)
+        else:
+            provider = os.path.splitext(os.path.basename(self.config_file))[0]
+            if safe_load is None and provider in PROVIDER_CONFIGS:
+                self.config = Config(PROVIDER_CONFIGS[provider])
+                return
+            if safe_load is None:
+                raise ImportError("PyYAML is required to load parser config files")
+            with open(self.config_file, "r", encoding="utf-8") as ymlconfig:
+                config = safe_load(ymlconfig)
+                self.config = Config(config)
+
+    def __reset_output(self):
+        self.output_list = []
+        self.aggregation_data = {}
+
+    def __validate_aggregate(self, aggregate):
+        if aggregate in SUPPORTED_AGGREGATES:
+            logger.info("Aggregating data on a {} basis".format(aggregate))
+            return True
+
+        logger.error("Aggregating data on a {} basis not supported.".format(aggregate))
+        return False
+
+    def __parse_account_statement_stream(self, infile, aggregate="transaction"):
+        dialect = csv.Sniffer().sniff(infile.readline())
+        infile.seek(0)
+        account_statement = csv.DictReader(infile, dialect=dialect)
+
+        for statement in account_statement:
+            self.__process_statement(aggregate=aggregate, statement=statement)
+
+        if aggregate == "daily" or aggregate == "monthly":
+            self.__migrate_data_to_output()
+        return self.output_list
+
+    def parse_account_statement_text(self, csv_text, aggregate="transaction"):
+        """
+        Parse account statement CSV text with the parser's configured platform settings.
+
+        :param csv_text: account statement CSV data as text
+        :param aggregate: specifies the aggregation period. defaults to transaction.
+        :return: list of account statement entries ready for use in Portfolio Performance
+        """
+        self.__reset_output()
+        if not self.__validate_aggregate(aggregate):
+            return
+
+        self.__parse_service_config()
+
+        logger.info("Loading account statement")
+        with io.StringIO(csv_text.lstrip("\ufeff")) as infile:
+            return self.__parse_account_statement_stream(infile, aggregate=aggregate)
 
     def __process_statement(self, statement, aggregate="transaction"):
         """
@@ -165,23 +249,15 @@ class PeerToPeerPlatformParser(object):
         :param aggregate: specifies the aggregation period. defaults to daily.
         :return: list of account statement entries ready for use in Portfolio Performance
         """
-        if aggregate == "transaction" or aggregate == "daily" or aggregate == "monthly":
-            logger.info("Aggregating data on a {} basis".format(aggregate))
-        else:
-            logger.error("Aggregating data on a {} basis not supported.".format(aggregate))
+        self.__reset_output()
+        if not self.__validate_aggregate(aggregate):
             return
 
-        self.__parse_service_config()
+        if not self._account_statement_file or not os.path.exists(self._account_statement_file):
+            logger.error("provided file %s does not exist", self._account_statement_file)
+            return False
 
+        self.__parse_service_config()
         logger.info("Loading account statement")
         with codecs.open(self._account_statement_file, "r", encoding="utf-8-sig") as infile:
-            dialect = csv.Sniffer().sniff(infile.readline())
-            infile.seek(0)
-            account_statement = csv.DictReader(infile, dialect=dialect)
-
-            for statement in account_statement:
-                self.__process_statement(aggregate=aggregate, statement=statement)
-
-        if aggregate == "daily" or aggregate == "monthly":
-            self.__migrate_data_to_output()
-        return self.output_list
+            return self.__parse_account_statement_stream(infile, aggregate=aggregate)

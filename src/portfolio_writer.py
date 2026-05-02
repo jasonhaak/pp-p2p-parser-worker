@@ -67,6 +67,12 @@ class PortfolioPerformanceWriter(object):
         :return:
         """
         with codecs.open(outfile, "w", encoding="utf-8") as csv_output:
-            stream_content = self.out_string_stream.getvalue()
+            stream_content = self.get_output()
             logger.debug(stream_content)
-            csv_output.write(stream_content.strip())
+            csv_output.write(stream_content)
+
+    def get_output(self):
+        """
+        Return the complete Portfolio Performance CSV output as a string.
+        """
+        return self.out_string_stream.getvalue().strip()
