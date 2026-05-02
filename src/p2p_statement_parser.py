@@ -109,8 +109,15 @@ def parse_csv_text(csv_text, provider="mintos_en", aggregate="transaction"):
     :param aggregate: transaction, daily, or monthly
     :return: Portfolio Performance CSV data as text, or False if no matching statements were found
     """
+    if provider == "auto":
+        provider = detect_provider_from_csv_text(csv_text)
+        if not provider:
+            raise ParserInputError("The uploaded CSV does not match any supported provider format.")
+
     if provider not in PROVIDER_CONFIGS:
         raise ValueError("The provided platform {} is currently not supported".format(provider))
+
+    validate_provider_headers(csv_text, provider)
 
     platform_parser = PeerToPeerPlatformParser(config=PROVIDER_CONFIGS[provider])
     statement_list = platform_parser.parse_account_statement_text(csv_text=csv_text, aggregate=aggregate)

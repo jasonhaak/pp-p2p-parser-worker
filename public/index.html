@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PP-P2P Parser</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="tool" aria-labelledby="title">
+        <div class="heading">
+          <div>
+            <h1 id="title">PP-P2P Parser</h1>
+            <p>Convert P2P account statement CSV exports into Portfolio Performance CSV files.</p>
+          </div>
+          <span class="badge">CSV</span>
+        </div>
+
+        <form id="parser-form" class="form">
+          <label>
+            Provider
+            <select id="provider" name="provider">
+              <option value="auto">Auto-detect</option>
+              <option value="mintos_en">Mintos EN</option>
+              <option value="mintos_de">Mintos DE</option>
+              <option value="estateguru_de_legacy">EstateGuru DE Legacy</option>
+              <option value="estateguru_de">EstateGuru DE</option>
+              <option value="estateguru_en">EstateGuru EN</option>
+              <option value="bondora">Bondora</option>
+              <option value="bondora_go_grow">Bondora Go &amp; Grow</option>
+              <option value="debitumnetwork">Debitum Network</option>
+              <option value="lande">Lande</option>
+              <option value="robocash">Robocash</option>
+              <option value="swaper">Swaper</option>
+              <option value="viainvest">Viainvest</option>
+            </select>
+          </label>
+
+          <label>
+            Aggregation
+            <select id="aggregate" name="aggregate">
+              <option value="transaction">Transaction</option>
+              <option value="daily">Daily</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </label>
+
+          <label class="file-input">
+            Statement CSV
+            <input id="file" name="file" type="file" accept=".csv,text/csv" required />
+          </label>
+
+          <div class="actions">
+            <button id="submit" type="submit">Convert</button>
+            <p id="status" role="status" aria-live="polite"></p>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

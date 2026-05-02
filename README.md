@@ -61,7 +61,24 @@ optional arguments:
 ### Example
 
 ```shell
-./parse-account-statements.py --type mintos src/test/testdata/mintos.csv
+./parse-account-statements.py --type mintos_en src/test/testdata/mintos.csv
+```
+
+## Cloudflare Worker
+
+This project can also run as a single Cloudflare Worker with a static upload UI and a Python parser API.
+
+```shell
+npx wrangler@latest dev
+```
+
+The UI is served from `public/`. The parser API is `POST /parse` with multipart form fields `file`, `provider`, and `aggregate`.
+The Worker uses Cloudflare's built-in Python runtime SDK via the `disable_python_external_sdk` compatibility flag, so no `workers-py` project dependency is required for this local command.
+
+Deploy with:
+
+```shell
+npx wrangler@latest deploy
 ```
 
 ## &#x26a0; Information
@@ -79,8 +96,10 @@ multiple times in Portfolio Performance.
 
 ## Currently supported formats
 
-* `mintos` - Supports current account-statement.csv file format
-* `estateguru` - Supports current German layout account statement csv file format
+* `mintos_en` - Supports English account-statement.csv file format
+* `mintos_de` - Supports German account-statement.csv file format
+* `estateguru_de` - Supports current German layout account statement csv file format
+* `estateguru_de_legacy` - Supports older German layout account statement csv file format
 * `estateguru_en` - Adaptation for the English account statement csv file format
 * `robocash` - Supports current account statement format (as of 2018-05-01) exported to csv
 * `swaper` - Supports current account statement format (as of 2018-05-01) exported to csv
