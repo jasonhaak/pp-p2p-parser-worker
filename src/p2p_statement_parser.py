@@ -11,11 +11,6 @@ import io
 import logging
 import os
 
-try:
-    from yaml import safe_load
-except ImportError:
-    safe_load = None
-
 from src.p2p_config import Config
 from src.portfolio_writer import PP_FIELDNAMES
 from src.portfolio_writer import PortfolioPerformanceWriter
@@ -155,20 +150,16 @@ class PeerToPeerPlatformParser(object):
 
     def __parse_service_config(self):
         """
-        Parse the YAML configuration file containing specific settings for the individual p2p loan platform
+        Load the bundled configuration for the individual p2p loan platform.
         """
         if isinstance(self.config_file, dict):
             self.config = Config(self.config_file)
         else:
             provider = os.path.splitext(os.path.basename(self.config_file))[0]
-            if safe_load is None and provider in PROVIDER_CONFIGS:
+            if provider in PROVIDER_CONFIGS:
                 self.config = Config(PROVIDER_CONFIGS[provider])
                 return
-            if safe_load is None:
-                raise ImportError("PyYAML is required to load parser config files")
-            with open(self.config_file, "r", encoding="utf-8") as ymlconfig:
-                config = safe_load(ymlconfig)
-                self.config = Config(config)
+            raise ValueError("The provided platform {} is currently not supported".format(provider))
 
     def __reset_output(self):
         self.output_list = []

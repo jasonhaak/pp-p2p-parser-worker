@@ -4,10 +4,8 @@ Module for the portfolio performance writer
 
 Copyright 2018-04-29 ChrisRBe
 """
-import codecs
 import csv
 import io
-import locale
 import logging
 from decimal import Decimal
 
@@ -52,27 +50,24 @@ class PortfolioPerformanceWriter(object):
         key value pair
         :return:
         """
-        logger.debug("Current locale: %s", locale.getlocale())
         if statement_dict:
-            value = Decimal(statement_dict[PP_FIELDNAMES[1]])
-            statement_dict[PP_FIELDNAMES[1]] = f"{value:.8n}"
+            statement_dict[PP_FIELDNAMES[1]] = PortfolioPerformanceWriter.format_value(
+                statement_dict[PP_FIELDNAMES[1]]
+            )
             self.out_csv_writer.writerow(statement_dict)
-
-    def write_pp_csv_file(self, outfile="portfolio_performance.csv"):
-        """
-        Write the content of the complete string stream into the actual output file.
-        Should be called after the parsed account statement has been written to the stream.
-
-        :param outfile: specifies the path and name of the output file, defaults to portfolio_performance.csv
-        :return:
-        """
-        with codecs.open(outfile, "w", encoding="utf-8") as csv_output:
-            stream_content = self.get_output()
-            logger.debug(stream_content)
-            csv_output.write(stream_content)
 
     def get_output(self):
         """
         Return the complete Portfolio Performance CSV output as a string.
         """
         return self.out_string_stream.getvalue().strip()
+
+    @staticmethod
+    def format_value(value):
+        """
+        Format numeric values deterministically for Portfolio Performance CSV output.
+        """
+        formatted_value = "{:.8g}".format(Decimal(str(value)))
+        if "." in formatted_value and "e" not in formatted_value.lower():
+            formatted_value = formatted_value.rstrip("0").rstrip(".")
+        return formatted_value.replace(".", ",")
