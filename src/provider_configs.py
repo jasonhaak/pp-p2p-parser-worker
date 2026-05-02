@@ -70,6 +70,24 @@ PROVIDER_CONFIGS = {
             "booking_currency": "Währung",
         },
     },
+    "estateguru_de": {
+        "type_regex": {
+            "deposit": "^Einzahlung.*",
+            "withdraw": "^Auszahlung.*",
+            "interest": "^Zins.*",
+            "fee": "^Vermögensverwaltungsgebühr.*",
+            "ignorable_entry": "(^Investition.*)|(^Hauptbetrag$)",
+        },
+        "csv_fieldnames": {
+            "booking_date": "Zahlungsdatum",
+            "booking_date_format": "%d.%m.%Y %H:%M",
+            "booking_details": "Projektname",
+            "booking_id": "ID",
+            "booking_type": "Cashflow-Typ",
+            "booking_value": "Betrag",
+            "booking_currency": "Währung",
+        },
+    },
     "estateguru_en": {
         "type_regex": {
             "deposit": "^Deposit.*",
@@ -122,6 +140,27 @@ PROVIDER_CONFIGS = {
             "booking_type": "Details",
             "booking_value": "Turnover",
             "booking_currency": "Currency",
+        },
+    },
+    "mintos_de": {
+        "type_regex": {
+            "deposit": "(^Einzahlung.*)|(^Eingehende.*)",
+            "withdraw": "(^Auszahlung.*)|(^Abhebung.*)",
+            "interest": (
+                "(.*Erhaltene Zinsen$)|(.*Zinseinnahmen.*)|(.*Zinserträge.*)|"
+                "(.*Verzugszinseinnahmen.*)|(.*Zinseinnahmen aus ausstehenden Zahlungen.*)"
+            ),
+            "fee": "(.*Steuereinbehalt$)|(.*Einbehaltene Steuern.*)|(.*fee$)",
+            "ignorable_entry": "(.*Erhaltene Tilgung.*)|(^Investition$)|(.* Investition$)",
+        },
+        "csv_fieldnames": {
+            "booking_date": "Datum",
+            "booking_date_format": "%Y-%m-%d %H:%M:%S",
+            "booking_details": "Details",
+            "booking_id": "Transaktions-Nr.:",
+            "booking_type": "Details",
+            "booking_value": "Umsatz",
+            "booking_currency": "Währung",
         },
     },
     "robocash": {
