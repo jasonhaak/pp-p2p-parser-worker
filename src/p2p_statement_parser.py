@@ -20,10 +20,31 @@ from src.statement import Statement
 
 logger = logging.getLogger(__name__)
 SUPPORTED_AGGREGATES = ["transaction", "daily", "monthly"]
+PROVIDER_LABELS = {
+    "bondora": "Bondora",
+    "bondora_go_grow": "Bondora Go & Grow",
+    "debitumnetwork": "Debitum Network",
+    "estateguru_de": "Estateguru DE",
+    "estateguru_de_legacy": "Estateguru DE Legacy",
+    "estateguru_en": "Estateguru EN",
+    "lande": "Lande",
+    "mintos_de": "Mintos DE",
+    "mintos_en": "Mintos EN",
+    "robocash": "Robocash",
+    "swaper": "Swaper",
+    "viainvest": "Viainvest",
+}
 
 
 class ParserInputError(ValueError):
     """Raised when uploaded CSV content does not match the selected provider."""
+
+
+def format_provider_label(provider):
+    """
+    Return a user-facing provider label.
+    """
+    return PROVIDER_LABELS.get(provider, provider)
 
 
 def get_csv_headers(csv_text):
@@ -91,12 +112,18 @@ def validate_provider_headers(csv_text, provider):
 
     if missing_headers:
         detected_provider = detect_provider_from_csv_text(csv_text)
-        message = (
-            "The uploaded CSV does not match provider '{}'. Missing required column(s): {}. "
-            "Found column(s): {}."
-        ).format(provider, ", ".join(missing_headers), ", ".join(sorted(headers)))
         if detected_provider:
-            message += " The file looks like provider '{}'.".format(detected_provider)
+            detected_label = format_provider_label(detected_provider)
+            selected_label = format_provider_label(provider)
+            message = (
+                "This CSV looks like {}, but {} is selected. "
+                "Switch to provider {} or choose Auto-Detect and try again."
+            ).format(detected_label, selected_label, detected_label)
+        else:
+            message = (
+                "This CSV does not match {}. Choose Auto-Detect or select the correct provider and try again. "
+                "Missing required column(s): {}."
+            ).format(format_provider_label(provider), ", ".join(missing_headers))
         raise ParserInputError(message)
 
 

@@ -1,8 +1,14 @@
 const form = document.querySelector("#parser-form");
 const providerSelect = document.querySelector("#provider");
 const fileInput = document.querySelector("#file");
+const fileName = document.querySelector("#file-name");
 const submitButton = document.querySelector("#submit");
 const statusText = document.querySelector("#status");
+const modeInputs = document.querySelectorAll('input[name="aggregate"]');
+
+if (window.self !== window.top || new URLSearchParams(window.location.search).get("embedded") === "true") {
+  document.body.classList.add("embedded");
+}
 
 const providerHeaders = {
   bondora: ["TransferDate", "Description", "LoanNumber", "Amount", "Currency"],
@@ -19,20 +25,38 @@ const providerHeaders = {
   viainvest: ["Value date", "Loan ID", "Transaction type", "Credit (€)"],
 };
 
+const providerLabels = {
+  bondora: "Bondora",
+  bondora_go_grow: "Bondora Go & Grow",
+  debitumnetwork: "Debitum Network",
+  estateguru_de: "Estateguru DE",
+  estateguru_de_legacy: "Estateguru DE Legacy",
+  estateguru_en: "Estateguru EN",
+  lande: "Lande",
+  mintos_de: "Mintos DE",
+  mintos_en: "Mintos EN",
+  robocash: "Robocash",
+  swaper: "Swaper",
+  viainvest: "Viainvest",
+};
+
 fileInput.addEventListener("change", async () => {
   const file = fileInput.files[0];
   if (!file) {
     providerSelect.value = "auto";
+    fileName.textContent = "No file selected";
     setStatus("");
     return;
   }
+
+  fileName.textContent = file.name;
 
   try {
     const headerLine = await readHeaderLine(file);
     const detectedProvider = detectProvider(parseCsvLine(headerLine));
     if (detectedProvider) {
       providerSelect.value = detectedProvider;
-      setStatus(`Detected ${formatProviderName(detectedProvider)}. You can change it manually.`);
+      setStatus(`Detected the format for ${formatProviderName(detectedProvider)}. You can change it manually.`);
     } else {
       providerSelect.value = "auto";
       setStatus("Could not identify this CSV format. Choose a provider manually.", true);
@@ -42,6 +66,11 @@ fileInput.addEventListener("change", async () => {
     setStatus(error.message || "Could not read the CSV header.", true);
   }
 });
+
+modeInputs.forEach((input) => {
+  input.addEventListener("change", updateModeSelection);
+});
+updateModeSelection();
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -80,7 +109,14 @@ form.addEventListener("submit", async (event) => {
 
 function setStatus(message, isError = false) {
   statusText.textContent = message;
+  statusText.classList.toggle("visible", Boolean(message));
   statusText.classList.toggle("error", isError);
+}
+
+function updateModeSelection() {
+  modeInputs.forEach((input) => {
+    input.closest(".mode-card").classList.toggle("selected", input.checked);
+  });
 }
 
 async function readError(response) {
@@ -135,10 +171,7 @@ function detectProvider(headers) {
 }
 
 function formatProviderName(provider) {
-  return provider
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+  return providerLabels[provider] || provider;
 }
 
 function getDownloadFilename(response) {

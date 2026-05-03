@@ -46,8 +46,8 @@ class TestParseCsvText(unittest.TestCase):
             with self.assertRaises(ParserInputError) as context:
                 parse_csv_text(csv_input.read(), provider="mintos_en", aggregate="transaction")
 
-        self.assertIn("does not match provider 'mintos_en'", str(context.exception))
-        self.assertIn("looks like provider 'mintos_de'", str(context.exception))
+        self.assertIn("This CSV looks like Mintos DE", str(context.exception))
+        self.assertIn("Mintos EN is selected", str(context.exception))
 
     def test_parse_estateguru_de_csv_text(self):
         testdata = os.path.join(os.path.dirname(__file__), "testdata", "estateguru_de.csv")
