@@ -1,188 +1,233 @@
-<h1 align="center">PP-P2P-Parser</h1>
+# pp-p2p-parser-ui
 
-<p align="center">
-<a href="https://github.com/ChrisRBe/PP-P2P-Parser/actions"><img alt="Action Status" src="https://github.com/ChrisRBe/PP-P2P-Parser/workflows/Integration/badge.svg?branch=master"></a>
-<a href="https://codeclimate.com/github/ChrisRBe/PP-P2P-Parser/test_coverage"><img alt="Test Coverage" src="https://api.codeclimate.com/v1/badges/f3bad303efd4200ebee2/test_coverage"/></a>
-<a href="https://codeclimate.com/github/ChrisRBe/PP-P2P-Parser/maintainability"><img alt="Maintainability" src="https://api.codeclimate.com/v1/badges/f3bad303efd4200ebee2/maintainability"/></a>
-<a href="https://github.com/pre-commit/pre-commit"><img alt="pre-commit: enabled" src="https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white" style="max-width:100%;"></a>
-<a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
-<a href="https://app.bors.tech/repositories/37041"><img alt="Bors enabled" src="https://bors.tech/images/badge_small.svg"></a>
-</p>
+[![Release](https://img.shields.io/github/v/release/jasonhaak/pp-p2p-parser-ui)](https://github.com/jasonhaak/pp-p2p-parser-ui/releases/latest)
+[![CI](https://img.shields.io/github/actions/workflow/status/jasonhaak/pp-p2p-parser-ui/ci.yml?branch=main&logo=github)](https://github.com/jasonhaak/pp-p2p-parser-ui/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/github/jasonhaak/pp-p2p/graph/badge.svg)](https://codecov.io/github/jasonhaak/cloudflare-outlook-calendar-worker)
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare)](https://workers.cloudflare.com/)
+[![Python](https://img.shields.io/badge/Python-Workers-306998?logo=python)](https://developers.cloudflare.com/workers/languages/python/)
 
-## Introduction
+A Cloudflare Worker, converting P2P account statement CSV exports into Portfolio Performance compatible CSV files. The Worker accepts a statement export, detects or uses the selected provider format, applies optional aggregation and returns a downloadable import file.
 
-Application to read account statement files from different peer to peer lending sites,
-e.g. mintos.com, and produces a Portfolio Performance readable csv file.
+The project also keeps the original command line workflow for local batch conversion.
 
-Input format needs to be a csv file as well!
+## Table of Contents
 
-## Usage
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Supported Providers](#supported-providers)
+- [How it Works](#how-it-works)
+- [Aggregation Modes](#aggregation-modes)
+- [Installation & Development](#installation--development)
+- [Testing](#testing)
+- [Endpoints](#endpoints)
+- [Iframe Usage](#iframe-usage)
+- [CLI Usage](#cli-usage)
+- [Configuration](#configuration)
+- [Author & Licence](#author--licence)
 
-```text
-parse-account-statements.py --help
-usage:
-An application to read account statement files from different peer to peer lending sites, e.g. Mintos.com and creates
-a Portfolio Performance readable csv file.
+## Features
 
-NOTE: The output only contains interest and interest like payments received. No other statements are currently parsed.
+- **Cloudflare Worker UI**: Serves a lightweight upload interface and parser API from one Worker
+- **CSV Provider Detection**: Detects supported formats from CSV headers and suggests the matching provider
+- **Portfolio Performance Output**: Generates a CSV import file using Portfolio Performance compatible columns
+- **Aggregation Modes**: Supports `transaction`, `daily`, and `monthly` aggregation
+- **Multiple Language Formats**: Supports language-specific provider variants such as `mintos_en`, `mintos_de`, `estateguru_de` and `estateguru_en`
+- **No Runtime Storage**: Uploaded files are read for conversion only and are not stored by the app
+- **CLI Compatibility**: Keeps a local command line parser for existing workflows
 
-List of currently supported providers:
-    - Bondora
-    - Bondora Grow Go
-    - Estateguru
-    - Lande
-    - Mintos
-    - Robocash
-    - Swaper
-    - Debitum Network
-    - Viainvest
+## Quick Start
 
-Control the way how account statements are processed via the aggregate parameter:
-    - transaction: Currently does not process the input data beyond making it Portfolio Performance compatible.
-    - daily: This aggregates all bookings of the same type into one statement per type and day.
-    - monthly: This aggregates all bookings of the same type into one statement per type and month. Sets
-            the last day of the month as transaction date.
+You will learn how to run the Worker locally, open the built-in UI, upload a CSV export and download a Portfolio Performance import file.
 
-Default behaviour for now is 'transaction'.
+### 1. Prepare the Codebase
 
-Copyright 2018-03-17 ChrisRBe
-
-positional arguments:
-  infile                CSV file containing the downloaded data from the P2P site
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --aggregate {transaction,daily,monthly}
-                        specify how account statements should be summarized
-  --type TYPE           Specifies the p2p lending operator
-  --debug               enables debug level logging if set
-```
-
-### Example
+Clone or fork this repository:
 
 ```shell
-./parse-account-statements.py --type mintos_en src/test/testdata/mintos.csv
+git clone https://github.com/jasonhaak/pp-p2-parser-ui.git
+cd pp-p2-parser-ui
 ```
 
-## Cloudflare Worker
+### 2. Run Locally
 
-This project can also run as a single Cloudflare Worker with a static upload UI and a Python parser API.
+Start the Cloudflare Worker development server:
 
 ```shell
 npx wrangler@latest dev
 ```
 
-The UI is served from `public/`. The parser API is `POST /parse` with multipart form fields `file`, `provider`, and `aggregate`.
-The Worker uses Cloudflare's built-in Python runtime SDK via the `disable_python_external_sdk` compatibility flag, so no `workers-py` project dependency is required for this local command.
+Open the local UI:
 
-Deploy with:
+```text
+http://localhost:8787
+```
+
+### 3. Convert a CSV File
+
+- Upload a CSV account statement export.
+- Keep `Auto-Detect` selected or choose the provider manually.
+- Choose an aggregation mode.
+- Click **Convert** and save the generated CSV file.
+
+### 4. Deploy to Cloudflare
+
+Deploy the Worker:
 
 ```shell
 npx wrangler@latest deploy
 ```
 
-## &#x26a0; Information
+## Supported Providers
 
-&#x26a0; If you are using the --aggregate=monthly option, please note that this aggregates account activities
-always on then last day of the month. This can lead to import issues in Portfolio Performance when importing
-data for the current month.
+| Provider key | Format |
+| --- | --- |
+| `bondora` | Bondora account statement |
+| `bondora_go_grow` | Bondora Go & Grow account statement |
+| `debitumnetwork` | Debitum Network account statement |
+| `estateguru_de` | EstateGuru German export |
+| `estateguru_de_legacy` | EstateGuru older German export |
+| `estateguru_en` | EstateGuru English export |
+| `lande` | Lande account statement |
+| `mintos_de` | Mintos German export |
+| `mintos_en` | Mintos English export |
+| `robocash` | Robocash account statement |
+| `swaper` | Swaper account statement |
+| `viainvest` | Viainvest account statement |
 
-E.g. import date is the 15th of a July, the account statement contains data with a date of 31st of July.
+## How it Works
 
-Account activity for a "future date" will be ignored/ not imported by Portfolio Performance.
+The browser sends the selected CSV file to `POST /parse` as multipart form data. The Worker reads the file, validates the selected provider format, parses supported booking rows, writes Portfolio Performance compatible CSV content, and returns it as a downloadable response.
 
-Please note, that this behaviour on application side is intentional to avoid importing account activity
-multiple times in Portfolio Performance.
+The UI can detect the likely provider from the CSV header row. If the selected provider does not match the uploaded file, the error message explains which provider the file appears to use.
 
-## Currently supported formats
+## Aggregation Modes
 
-* `mintos_en` - Supports English account-statement.csv file format
-* `mintos_de` - Supports German account-statement.csv file format
-* `estateguru_de` - Supports current German layout account statement csv file format
-* `estateguru_de_legacy` - Supports older German layout account statement csv file format
-* `estateguru_en` - Adaptation for the English account statement csv file format
-* `robocash` - Supports current account statement format (as of 2018-05-01) exported to csv
-* `swaper` - Supports current account statement format (as of 2018-05-01) exported to csv
-* `bondora` - Supports current account statement format (as of 2019-10-12); exported to csv
-* `bondora_go_grow` - Supports current account statement format (as of 2019-10-12); exported to csv
-* `debitumnetwork` - Supports current account statement format (as of 2020-09-08) exported to csv
-* `viainvest` - Supports current account statement (as of 2021-12-12) exported as csv (Withdrawals do not work yet)
-* `lande` - Supports current account statement (as of 2022-12-01) exported as csv (Withdrawals not tested yet)
+- `transaction`: Exports each supported booking as a separate row.
+- `daily`: Summarizes bookings of the same type per day.
+- `monthly`: Summarizes bookings of the same type per month and uses the last day of the month as the booking date.
 
-### Alternative solution for Auxmoney
+Monthly aggregation can create booking dates later than the import date for the current month. Portfolio Performance may ignore future-dated rows.
 
-Unfortunately, the output file of Auxmoney's reports is not suitable for being parsed by PP-P2P-Parser in a meaningful way.
-As an alternative, you can check out the [PP-Auxmoney-Parser](https://github.com/StegSchreck/PP-Auxmoney-Parser) project.
+## Installation & Development
 
-## Configuration files
+### Worker Development
 
-Configuration for this script is stored in yaml files located under the config subdirectory.
-The content directly reflects the format of the source account statement files.
+The Worker uses Cloudflare's built-in Python runtime SDK via the `disable_python_external_sdk` compatibility flag in `wrangler.toml`.
+
+```shell
+npx wrangler@latest dev
+```
+
+The static UI lives in `public/`. The Python Worker entrypoint is `worker.py`.
+
+### Python Development
+
+Create a virtual environment if you want to run the Python tests locally:
+
+```shell
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r dev-requirements.txt
+```
+
+## Testing
+
+Run the Python test suite:
+
+```shell
+python3 -m unittest discover -s src/test -q
+```
+
+Check Python syntax:
+
+```shell
+python3 -m py_compile worker.py parse-account-statements.py src/*.py
+```
+
+Check frontend JavaScript syntax:
+
+```shell
+node --check public/app.js
+```
+
+## Endpoints
+
+### `GET /`
+
+Serves the static upload UI.
+
+### `POST /parse`
+
+Accepts multipart form data:
+
+| Field | Description |
+| --- | --- |
+| `file` | CSV account statement export |
+| `provider` | Provider key, or `auto` |
+| `aggregate` | `transaction`, `daily`, or `monthly` |
 
 Example:
 
-```yaml
----
-type_regex: !!map
-  deposit: "(Deposits)|(^Incoming client.*)|(^Incoming currency exchange.*)|(^Affiliate partner bonus$)"
-  withdraw: "(^Withdraw application.*)|(Outgoing currency.*)|(Withdrawal)"
-  interest: "(^Delayed interest.*)|(^Late payment.*)|(^Interest income.*)|(^Cashback.*)|(^.*[Ii]nterest received.*)|(^.*late fees received$)"
-  fee: "(^FX commission.*)|(.*secondary market fee$)"
-  ignorable_entry: ".*investment in loan.*|.*[Pp]rincipal received.*|.*secondary market transaction.*"
-  special_entry: "(.*discount/premium.*)"
-
-csv_fieldnames:
-  booking_date: 'Date'
-  booking_date_format: '%Y-%m-%d %H:%M:%S'
-  booking_details: 'Details'
-  booking_id: 'Transaction ID'
-  booking_type: 'Details'
-  booking_value: 'Turnover'
-
+```shell
+curl -X POST http://localhost:8787/parse \
+  -F "provider=auto" \
+  -F "aggregate=transaction" \
+  -F "file=@src/test/testdata/mintos.csv" \
+  -o /tmp/portfolio_performance.csv
 ```
 
-## Output
+Successful responses return `text/csv` with a `Content-Disposition` download filename.
 
-CSV file format compatible with Performance Portfolio (German language setting).
+## Iframe Usage
 
-## Dependencies
+The UI is designed to be embedded in another page. It automatically switches to embedded mode when loaded inside an iframe. You can also force embedded mode with:
 
-To use this application the following dependencies need to be installed:
+```text
+https://your-worker.example/?embedded=true
+```
 
-* Python 3.8+ (unit tests are run against Python 3.8, 3.9, 3.10, 3.11)
-* virtualenv
-* pipenv
+Recommended host CSS:
 
-Installation of Python dependencies can be handled in two ways:
+```css
+iframe {
+  width: 100%;
+  min-height: 720px;
+  border: 0;
+  background: #F6F6F6;
+  display: block;
+}
+```
 
-*   Install dependencies via `pip install -r requirements.txt`
-*   Create a virtual environment using pipenv (**preferred way**)
+## CLI Usage
 
-    ```shell
-    pipenv install
-    pipenv shell
-    ```
+The local CLI remains available:
 
-## Development
+```shell
+./parse-account-statements.py --type mintos_en src/test/testdata/mintos.csv
+```
 
-To set up a local development environment for this project please use either
-of these two options:
+Available aggregation modes:
 
-*   Using plain pip
+```shell
+./parse-account-statements.py --type mintos_en --aggregate daily src/test/testdata/mintos.csv
+```
 
-    ```shell
-    pip install -r dev-requirements.txt
-    ```
+The CLI writes `portfolio_performance__<provider>.csv` next to the input file.
 
-*   Using pipenv
+## Configuration
 
-    ```shell
-    pipenv install --dev
-    pipenv shell
-    ```
+Provider parsing rules are bundled in `src/provider_configs.py` for Worker runtime use. YAML reference files are kept in `config/` using language-specific names where applicable, for example:
 
-## Legal
+- `config/mintos_en.yml`
+- `config/mintos_de.yml`
+- `config/estateguru_de.yml`
+- `config/estateguru_en.yml`
 
-I'm not a lawyer. This project is in no way affiliated with
-[Portfolio Performance](http://www.portfolio-performance.info/portfolio/),
-but intended to be used with it.
+## Author & Licence
+
+This project is not affiliated with Portfolio Performance or any P2P lending platform.
+
+Original parser work comes from the PP-P2P-Parser project. This repository adapts it into a Cloudflare Worker UI.
+
+Licensed under GPL-3.0. See [LICENSE](LICENSE).
