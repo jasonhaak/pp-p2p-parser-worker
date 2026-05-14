@@ -1,5 +1,5 @@
 name = "pp-p2p-parser-ui"
-main = "worker.py"
+main = "src/worker.py"
 compatibility_date = "2026-05-02"
 compatibility_flags = ["python_workers", "disable_python_external_sdk"]
 
