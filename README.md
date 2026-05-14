@@ -1,28 +1,25 @@
-# pp-p2p-parser-ui
+# pp-p2-parser-ui
 
-[![Release](https://img.shields.io/github/v/release/jasonhaak/pp-p2p-parser-ui)](https://github.com/jasonhaak/pp-p2p-parser-ui/releases/latest)
-[![CI](https://img.shields.io/github/actions/workflow/status/jasonhaak/pp-p2p-parser-ui/ci.yml?branch=main&logo=github)](https://github.com/jasonhaak/pp-p2p-parser-ui/actions/workflows/ci.yml)
-[![Coverage](https://codecov.io/github/jasonhaak/pp-p2p/graph/badge.svg)](https://codecov.io/github/jasonhaak/cloudflare-outlook-calendar-worker)
+[![Release](https://img.shields.io/github/v/release/jasonhaak/pp-p2-parser-ui)](https://github.com/jasonhaak/pp-p2-parser-ui/releases/latest)
+[![CI](https://img.shields.io/github/actions/workflow/status/jasonhaak/pp-p2-parser-ui/ci.yml?branch=main&logo=github)](https://github.com/jasonhaak/pp-p2-parser-ui/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/github/jasonhaak/pp-p2-parser-ui/graph/badge.svg)](https://codecov.io/github/jasonhaak/pp-p2-parser-ui)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare)](https://workers.cloudflare.com/)
 [![Python](https://img.shields.io/badge/Python-Workers-306998?logo=python)](https://developers.cloudflare.com/workers/languages/python/)
 
 A Cloudflare Worker, converting P2P account statement CSV exports into Portfolio Performance compatible CSV files. The Worker accepts a statement export, detects or uses the selected provider format, applies optional aggregation and returns a downloadable import file.
 
-The project also keeps the original command line workflow for local batch conversion.
-
 ## Table of Contents
 
 - [Features](#features)
 - [Quick Start](#quick-start)
-- [Supported Providers](#supported-providers)
-- [How it Works](#how-it-works)
-- [Aggregation Modes](#aggregation-modes)
+- [Configuration](#configuration)
+  - [Supported Providers](#supported-providers)
+  - [Aggregation Mode](#aggregation-mode)
 - [Installation & Development](#installation--development)
 - [Testing](#testing)
 - [Endpoints](#endpoints)
-- [Iframe Usage](#iframe-usage)
+- [IFrame Usage](#iframe-usage)
 - [CLI Usage](#cli-usage)
-- [Configuration](#configuration)
 - [Author & Licence](#author--licence)
 
 ## Features
@@ -77,7 +74,36 @@ Deploy the Worker:
 npx wrangler@latest deploy
 ```
 
-## Supported Providers
+## Configuration
+
+Provider parsing rules are maintained as YAML files in `config/`. The Worker runtime uses the generated Python module `src/provider_configs.py`, because the Python Worker environment should not need a YAML parser dependency at request time.
+
+The YAML files use language-specific provider keys where applicable, for example:
+
+- `config/mintos_en.yml`
+- `config/mintos_de.yml`
+- `config/estateguru_de.yml`
+- `config/estateguru_en.yml`
+
+CI regenerates the bundled runtime config before running tests and the Worker dry-run, so provider YAML changes are picked up automatically in the build.
+
+To regenerate locally before running the Worker or reviewing the generated module:
+
+```shell
+python3 tools/generate_provider_configs.py
+```
+
+To check whether the committed generated module already matches the YAML source:
+
+```shell
+python3 tools/generate_provider_configs.py --check
+```
+
+The browser sends the selected CSV file to `POST /parse` as multipart form data. The Worker reads the file, validates the selected provider format, parses supported booking rows, writes Portfolio Performance compatible CSV content, and returns it as a downloadable response.
+
+The UI can detect the likely provider from the CSV header row. If the selected provider does not match the uploaded file, the error message explains which provider the file appears to use.
+
+### Supported Providers
 
 | Provider key | Format |
 | --- | --- |
@@ -94,13 +120,7 @@ npx wrangler@latest deploy
 | `swaper` | Swaper account statement |
 | `viainvest` | Viainvest account statement |
 
-## How it Works
-
-The browser sends the selected CSV file to `POST /parse` as multipart form data. The Worker reads the file, validates the selected provider format, parses supported booking rows, writes Portfolio Performance compatible CSV content, and returns it as a downloadable response.
-
-The UI can detect the likely provider from the CSV header row. If the selected provider does not match the uploaded file, the error message explains which provider the file appears to use.
-
-## Aggregation Modes
+### Aggregation Mode
 
 - `transaction`: Exports each supported booking as a separate row.
 - `daily`: Summarizes bookings of the same type per day.
@@ -118,7 +138,7 @@ The Worker uses Cloudflare's built-in Python runtime SDK via the `disable_python
 npx wrangler@latest dev
 ```
 
-The static UI lives in `public/`. The Python Worker entrypoint is `worker.py`.
+The static UI lives in `public/`. The Python Worker entrypoint is `src/worker.py`, and the CLI implementation lives in `src/cli.py`.
 
 ### Python Development
 
@@ -128,7 +148,7 @@ Create a virtual environment if you want to run the Python tests locally:
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -r dev-requirements.txt
+python -m pip install coverage==7.2.4
 ```
 
 ## Testing
@@ -136,13 +156,21 @@ python -m pip install -r dev-requirements.txt
 Run the Python test suite:
 
 ```shell
-python3 -m unittest discover -s src/test -q
+python3 -m unittest discover -s test -q
+```
+
+Run the Python test suite with coverage:
+
+```shell
+coverage run --source=src -m unittest discover -s test -q
+coverage xml
+coverage html -d coverage
 ```
 
 Check Python syntax:
 
 ```shell
-python3 -m py_compile worker.py parse-account-statements.py src/*.py
+python3 -m py_compile src/*.py tools/*.py
 ```
 
 Check frontend JavaScript syntax:
@@ -173,13 +201,13 @@ Example:
 curl -X POST http://localhost:8787/parse \
   -F "provider=auto" \
   -F "aggregate=transaction" \
-  -F "file=@src/test/testdata/mintos.csv" \
+  -F "file=@test/testdata/mintos.csv" \
   -o /tmp/portfolio_performance.csv
 ```
 
 Successful responses return `text/csv` with a `Content-Disposition` download filename.
 
-## Iframe Usage
+## IFrame Usage
 
 The UI is designed to be embedded in another page. It automatically switches to embedded mode when loaded inside an iframe. You can also force embedded mode with:
 
@@ -204,25 +232,16 @@ iframe {
 The local CLI remains available:
 
 ```shell
-./parse-account-statements.py --type mintos_en src/test/testdata/mintos.csv
+python3 -m src.cli --type mintos_en test/testdata/mintos.csv
 ```
 
 Available aggregation modes:
 
 ```shell
-./parse-account-statements.py --type mintos_en --aggregate daily src/test/testdata/mintos.csv
+python3 -m src.cli --type mintos_en --aggregate daily test/testdata/mintos.csv
 ```
 
 The CLI writes `portfolio_performance__<provider>.csv` next to the input file.
-
-## Configuration
-
-Provider parsing rules are bundled in `src/provider_configs.py` for Worker runtime use. YAML reference files are kept in `config/` using language-specific names where applicable, for example:
-
-- `config/mintos_en.yml`
-- `config/mintos_de.yml`
-- `config/estateguru_de.yml`
-- `config/estateguru_en.yml`
 
 ## Author & Licence
 
