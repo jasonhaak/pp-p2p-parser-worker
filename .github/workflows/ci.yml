@@ -44,12 +44,12 @@ jobs:
 
       - name: Run Python tests
         if: github.event_name == 'pull_request'
-        run: python -m unittest discover -s src/test -q
+        run: python -m unittest discover -s test -q
 
       - name: Run Python coverage
         if: github.event_name == 'push'
         run: |
-          coverage run --source=src -m unittest discover -s src/test -q
+          coverage run --source=src -m unittest discover -s test -q
           coverage xml
           coverage html -d coverage
 
