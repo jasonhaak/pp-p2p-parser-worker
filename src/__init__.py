@@ -1,1 +1,0 @@
-from src.p2p_statement_parser import parse_csv_text
