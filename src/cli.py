@@ -36,7 +36,7 @@ from src import p2p_statement_parser
 
 
 root_logger = logging.getLogger()
-logger = logging.getLogger("parse-account-statements")
+logger = logging.getLogger("src.cli")
 
 
 def setup_logging(loglevel=logging.INFO):
