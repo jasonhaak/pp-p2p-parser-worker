@@ -39,6 +39,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install coverage==7.2.4
 
+      - name: Generate provider configs
+        run: python tools/generate_provider_configs.py
+
       - name: Validate Worker bundle
         run: npx wrangler@ deploy --dry-run
 
