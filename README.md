@@ -244,6 +244,6 @@ python3 -m src.cli --type mintos_en --output-language en test/testdata/mintos.cs
 ## Author & Licence
 This project is maintained by Jason Haak and is licensed under the GPL-3.0 licence.
 
-The original parser work comes from ChrisRBe's [PP-P2P-Parser](https://github.com/ChrisRBe/PP-P2P-Parser) repository. This project adapts that parser into a Cloudflare Worker UI.
+The original parser work comes from ChrisRBe's [PP-P2P-Parser](https://github.com/ChrisRBe/PP-P2P-Parser) repository. This project adapts that parser into a Cloudflare Worker.
 
 This project is not affiliated with Portfolio Performance or any P2P lending platform.
