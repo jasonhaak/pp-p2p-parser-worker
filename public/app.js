@@ -6,7 +6,13 @@ const submitButton = document.querySelector("#submit");
 const statusText = document.querySelector("#status");
 const optionInputs = document.querySelectorAll(".option-card input");
 
-if (window.self !== window.top || new URLSearchParams(window.location.search).get("embedded") === "true") {
+const searchParams = new URLSearchParams(window.location.search);
+const isEmbedded =
+  window.self !== window.top ||
+  window.location.pathname === "/embed" ||
+  searchParams.get("embed") === "1";
+
+if (isEmbedded) {
   document.body.classList.add("embedded");
 }
 
