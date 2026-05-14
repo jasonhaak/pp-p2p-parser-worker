@@ -1,0 +1,16 @@
+---
+type_regex: !!map
+  deposit: "(^Einzahlung.*)|(^Eingehende.*)"
+  withdraw: "(^Auszahlung.*)|(^Abhebung.*)"
+  interest: "(.*Erhaltene Zinsen$)|(.*Zinseinnahmen.*)|(.*Zinserträge.*)|(.*Verzugszinseinnahmen.*)|(.*Zinseinnahmen aus ausstehenden Zahlungen.*)"
+  fee: "(.*Steuereinbehalt$)|(.*Einbehaltene Steuern.*)|(.*fee$)"
+  ignorable_entry: "(.*Erhaltene Tilgung.*)|(^Investition$)|(.* Investition$)"
+
+csv_fieldnames:
+  booking_date: 'Datum'
+  booking_date_format: '%Y-%m-%d %H:%M:%S'
+  booking_details: 'Details'
+  booking_id: 'Transaktions-Nr.:'
+  booking_type: 'Details'
+  booking_value: 'Umsatz'
+  booking_currency: 'Währung'

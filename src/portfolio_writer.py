@@ -4,15 +4,32 @@ Module for the portfolio performance writer
 
 Copyright 2018-04-29 ChrisRBe
 """
-import codecs
 import csv
 import io
-import locale
 import logging
 from decimal import Decimal
 
 
-PP_FIELDNAMES = ["Datum", "Wert", "Buchungswährung", "Typ", "Notiz"]
+PP_FIELDNAMES = ["Date", "Value", "Currency", "Type", "Note"]
+PP_OUTPUT_LANGUAGES = ("de", "en")
+PP_OUTPUT_FIELDNAMES = {
+    "de": ["Datum", "Wert", "Buchungswährung", "Typ", "Notiz"],
+    "en": ["Date", "Value", "Transaction Currency", "Type", "Note"],
+}
+PP_TYPE_TRANSLATIONS = {
+    "de": {
+        "Deposit": "Einlage",
+        "Withdrawal": "Entnahme",
+        "Interest": "Zinsen",
+        "Fees": "Gebühren",
+    },
+}
+PP_NOTE_TRANSLATIONS = {
+    "de": {
+        "Daily summary": "Tageszusammenfassung",
+        "Monthly summary": "Monatszusammenfassung",
+    },
+}
 logger = logging.getLogger(__name__)
 
 
@@ -21,14 +38,19 @@ class PortfolioPerformanceWriter(object):
     Writing parsed Peer-to-Peer lending account statements to Portfolio Performance compatible format
     """
 
-    def __init__(self, dialect="excel"):
+    def __init__(self, dialect="excel", output_language="de"):
         """
         constructor for class
 
         :param dialect: translates to the used CSV dialect, defaults to excel
+        :param output_language: Portfolio Performance language for headers and transaction types
         """
+        if output_language not in PP_OUTPUT_LANGUAGES:
+            raise ValueError("Unsupported Portfolio Performance output language: {}".format(output_language))
+
         self.dialect = dialect
-        self.out_csv_fieldnames = PP_FIELDNAMES
+        self.output_language = output_language
+        self.out_csv_fieldnames = PP_OUTPUT_FIELDNAMES[output_language]
         self.out_string_stream = io.StringIO()
         self.out_csv_writer = None
 
@@ -52,21 +74,40 @@ class PortfolioPerformanceWriter(object):
         key value pair
         :return:
         """
-        logger.debug("Current locale: %s", locale.getlocale())
         if statement_dict:
-            value = Decimal(statement_dict[PP_FIELDNAMES[1]])
-            statement_dict[PP_FIELDNAMES[1]] = f"{value:.8n}"
-            self.out_csv_writer.writerow(statement_dict)
+            self.out_csv_writer.writerow(self.__format_output_statement(statement_dict))
 
-    def write_pp_csv_file(self, outfile="portfolio_performance.csv"):
+    def get_output(self):
         """
-        Write the content of the complete string stream into the actual output file.
-        Should be called after the parsed account statement has been written to the stream.
+        Return the complete Portfolio Performance CSV output as a string.
+        """
+        return self.out_string_stream.getvalue().strip()
 
-        :param outfile: specifies the path and name of the output file, defaults to portfolio_performance.csv
-        :return:
+    def __format_output_statement(self, statement_dict):
+        output_statement = {}
+        for source_fieldname, output_fieldname in zip(PP_FIELDNAMES, self.out_csv_fieldnames):
+            output_statement[output_fieldname] = statement_dict[source_fieldname]
+
+        value_fieldname = PP_OUTPUT_FIELDNAMES[self.output_language][1]
+        type_fieldname = PP_OUTPUT_FIELDNAMES[self.output_language][3]
+        note_fieldname = PP_OUTPUT_FIELDNAMES[self.output_language][4]
+        output_statement[value_fieldname] = PortfolioPerformanceWriter.format_value(output_statement[value_fieldname])
+        output_statement[type_fieldname] = PP_TYPE_TRANSLATIONS.get(self.output_language, {}).get(
+            output_statement[type_fieldname],
+            output_statement[type_fieldname],
+        )
+        output_statement[note_fieldname] = PP_NOTE_TRANSLATIONS.get(self.output_language, {}).get(
+            output_statement[note_fieldname],
+            output_statement[note_fieldname],
+        )
+        return output_statement
+
+    @staticmethod
+    def format_value(value):
         """
-        with codecs.open(outfile, "w", encoding="utf-8") as csv_output:
-            stream_content = self.out_string_stream.getvalue()
-            logger.debug(stream_content)
-            csv_output.write(stream_content.strip())
+        Format numeric values deterministically for Portfolio Performance CSV output.
+        """
+        formatted_value = "{:.8g}".format(Decimal(str(value)))
+        if "." in formatted_value and "e" not in formatted_value.lower():
+            formatted_value = formatted_value.rstrip("0").rstrip(".")
+        return formatted_value.replace(".", ",")

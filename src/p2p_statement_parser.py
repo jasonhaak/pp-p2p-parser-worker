@@ -7,16 +7,171 @@ Copyright 2018-04-29 ChrisRBe
 import calendar
 import codecs
 import csv
+import io
 import logging
+import os
 
-from yaml import safe_load
-
-from src.p2p_config import Config
-from src.portfolio_writer import PP_FIELDNAMES
-from src.statement import Statement
+try:
+    from src.p2p_config import Config
+    from src.portfolio_writer import PP_FIELDNAMES
+    from src.portfolio_writer import PP_OUTPUT_LANGUAGES
+    from src.portfolio_writer import PortfolioPerformanceWriter
+    from src.provider_configs import PROVIDER_CONFIGS
+    from src.statement import Statement
+except ModuleNotFoundError as exc:
+    if exc.name != "src":
+        raise
+    from p2p_config import Config
+    from portfolio_writer import PP_FIELDNAMES
+    from portfolio_writer import PP_OUTPUT_LANGUAGES
+    from portfolio_writer import PortfolioPerformanceWriter
+    from provider_configs import PROVIDER_CONFIGS
+    from statement import Statement
 
 
 logger = logging.getLogger(__name__)
+SUPPORTED_AGGREGATES = ["transaction", "daily", "monthly"]
+PROVIDER_LABELS = {
+    "bondora": "Bondora",
+    "bondora_go_grow": "Bondora Go & Grow",
+    "debitumnetwork": "Debitum Network",
+    "estateguru_de": "Estateguru DE",
+    "estateguru_de_legacy": "Estateguru DE Legacy",
+    "estateguru_en": "Estateguru EN",
+    "lande": "Lande",
+    "mintos_de": "Mintos DE",
+    "mintos_en": "Mintos EN",
+    "robocash": "Robocash",
+    "swaper": "Swaper",
+    "viainvest": "Viainvest",
+}
+
+
+class ParserInputError(ValueError):
+    """Raised when uploaded CSV content does not match the selected provider."""
+
+
+def format_provider_label(provider):
+    """
+    Return a user-facing provider label.
+    """
+    return PROVIDER_LABELS.get(provider, provider)
+
+
+def get_csv_headers(csv_text):
+    """
+    Return the header row from uploaded CSV text.
+    """
+    if not csv_text or not csv_text.strip():
+        raise ParserInputError("The uploaded CSV file is empty.")
+
+    with io.StringIO(csv_text.lstrip("\ufeff")) as infile:
+        sample = infile.read(4096)
+        infile.seek(0)
+        try:
+            dialect = csv.Sniffer().sniff(sample)
+        except csv.Error as exc:
+            raise ParserInputError("The uploaded file is not a readable CSV file.") from exc
+
+        reader = csv.reader(infile, dialect=dialect)
+        try:
+            headers = next(reader)
+        except StopIteration as exc:
+            raise ParserInputError("The uploaded CSV file has no header row.") from exc
+
+    headers = [header.strip() for header in headers if header and header.strip()]
+    if not headers:
+        raise ParserInputError("The uploaded CSV file has no header row.")
+    return headers
+
+
+def get_required_headers(provider):
+    """
+    Return CSV headers required by a provider configuration.
+    """
+    csv_fieldnames = PROVIDER_CONFIGS[provider]["csv_fieldnames"]
+    required_keys = ["booking_date", "booking_details", "booking_id", "booking_type", "booking_value"]
+    if csv_fieldnames.get("booking_currency"):
+        required_keys.append("booking_currency")
+    return [csv_fieldnames[key] for key in required_keys]
+
+
+def detect_provider_from_csv_text(csv_text):
+    """
+    Detect a supported provider by matching the uploaded CSV header row.
+    """
+    headers = set(get_csv_headers(csv_text))
+    matches = []
+
+    for provider in PROVIDER_CONFIGS:
+        required_headers = set(get_required_headers(provider))
+        if required_headers.issubset(headers):
+            matches.append(provider)
+
+    if not matches:
+        return None
+    return matches[0]
+
+
+def validate_provider_headers(csv_text, provider):
+    """
+    Ensure uploaded CSV headers match the selected provider.
+    """
+    headers = set(get_csv_headers(csv_text))
+    required_headers = set(get_required_headers(provider))
+    missing_headers = sorted(required_headers - headers)
+
+    if missing_headers:
+        detected_provider = detect_provider_from_csv_text(csv_text)
+        if detected_provider:
+            detected_label = format_provider_label(detected_provider)
+            selected_label = format_provider_label(provider)
+            message = (
+                "This CSV looks like {}, but {} is selected. "
+                "Switch to provider {} or choose Auto-Detect and try again."
+            ).format(detected_label, selected_label, detected_label)
+        else:
+            message = (
+                "This CSV does not match {}. Choose Auto-Detect or select the correct provider and try again. "
+                "Missing required column(s): {}."
+            ).format(format_provider_label(provider), ", ".join(missing_headers))
+        raise ParserInputError(message)
+
+
+def parse_csv_text(csv_text, provider="mintos_en", aggregate="transaction", output_language="de"):
+    """
+    Parse uploaded account statement CSV content and return Portfolio Performance CSV content.
+
+    :param csv_text: account statement CSV data as text
+    :param provider: supported P2P lending provider name
+    :param aggregate: transaction, daily, or monthly
+    :param output_language: Portfolio Performance output language, de or en
+    :return: Portfolio Performance CSV data as text, or False if no matching statements were found
+    """
+    if output_language not in PP_OUTPUT_LANGUAGES:
+        raise ValueError("Unsupported Portfolio Performance output language: {}".format(output_language))
+
+    if provider == "auto":
+        provider = detect_provider_from_csv_text(csv_text)
+        if not provider:
+            raise ParserInputError("The uploaded CSV does not match any supported provider format.")
+
+    if provider not in PROVIDER_CONFIGS:
+        raise ValueError("The provided platform {} is currently not supported".format(provider))
+
+    validate_provider_headers(csv_text, provider)
+
+    platform_parser = PeerToPeerPlatformParser(config=PROVIDER_CONFIGS[provider])
+    statement_list = platform_parser.parse_account_statement_text(csv_text=csv_text, aggregate=aggregate)
+
+    if not statement_list:
+        return False
+
+    writer = PortfolioPerformanceWriter(output_language=output_language)
+    writer.init_output()
+    for entry in statement_list:
+        writer.update_output(entry)
+    return writer.get_output()
 
 
 class PeerToPeerPlatformParser(object):
@@ -25,7 +180,7 @@ class PeerToPeerPlatformParser(object):
     Actual configuration for the individual services is done via a yml config file.
     """
 
-    def __init__(self, config, infile):
+    def __init__(self, config, infile=None):
         """
         Constructor for PeerToPeerPlatformParser
         """
@@ -82,10 +237,10 @@ class PeerToPeerPlatformParser(object):
             }
 
     def __aggregate_statements_daily(self, formatted_account_entry):
-        self.__aggregate_statements(formatted_account_entry, "Tageszusammenfassung", False)
+        self.__aggregate_statements(formatted_account_entry, "Daily summary", False)
 
     def __aggregate_statements_monthly(self, formatted_account_entry):
-        self.__aggregate_statements(formatted_account_entry, "Monatszusammenfassung", True)
+        self.__aggregate_statements(formatted_account_entry, "Monthly summary", True)
 
     def __format_statement(self, statement):
         """
@@ -122,11 +277,58 @@ class PeerToPeerPlatformParser(object):
 
     def __parse_service_config(self):
         """
-        Parse the YAML configuration file containing specific settings for the individual p2p loan platform
+        Load the bundled configuration for the individual p2p loan platform.
         """
-        with open(self.config_file, "r", encoding="utf-8") as ymlconfig:
-            config = safe_load(ymlconfig)
-            self.config = Config(config)
+        if isinstance(self.config_file, dict):
+            self.config = Config(self.config_file)
+        else:
+            provider = os.path.splitext(os.path.basename(self.config_file))[0]
+            if provider in PROVIDER_CONFIGS:
+                self.config = Config(PROVIDER_CONFIGS[provider])
+                return
+            raise ValueError("The provided platform {} is currently not supported".format(provider))
+
+    def __reset_output(self):
+        self.output_list = []
+        self.aggregation_data = {}
+
+    def __validate_aggregate(self, aggregate):
+        if aggregate in SUPPORTED_AGGREGATES:
+            logger.info("Aggregating data on a {} basis".format(aggregate))
+            return True
+
+        logger.error("Aggregating data on a {} basis not supported.".format(aggregate))
+        return False
+
+    def __parse_account_statement_stream(self, infile, aggregate="transaction"):
+        dialect = csv.Sniffer().sniff(infile.readline())
+        infile.seek(0)
+        account_statement = csv.DictReader(infile, dialect=dialect)
+
+        for statement in account_statement:
+            self.__process_statement(aggregate=aggregate, statement=statement)
+
+        if aggregate == "daily" or aggregate == "monthly":
+            self.__migrate_data_to_output()
+        return self.output_list
+
+    def parse_account_statement_text(self, csv_text, aggregate="transaction"):
+        """
+        Parse account statement CSV text with the parser's configured platform settings.
+
+        :param csv_text: account statement CSV data as text
+        :param aggregate: specifies the aggregation period. defaults to transaction.
+        :return: list of account statement entries ready for use in Portfolio Performance
+        """
+        self.__reset_output()
+        if not self.__validate_aggregate(aggregate):
+            return
+
+        self.__parse_service_config()
+
+        logger.info("Loading account statement")
+        with io.StringIO(csv_text.lstrip("\ufeff")) as infile:
+            return self.__parse_account_statement_stream(infile, aggregate=aggregate)
 
     def __process_statement(self, statement, aggregate="transaction"):
         """
@@ -165,23 +367,15 @@ class PeerToPeerPlatformParser(object):
         :param aggregate: specifies the aggregation period. defaults to daily.
         :return: list of account statement entries ready for use in Portfolio Performance
         """
-        if aggregate == "transaction" or aggregate == "daily" or aggregate == "monthly":
-            logger.info("Aggregating data on a {} basis".format(aggregate))
-        else:
-            logger.error("Aggregating data on a {} basis not supported.".format(aggregate))
+        self.__reset_output()
+        if not self.__validate_aggregate(aggregate):
             return
 
-        self.__parse_service_config()
+        if not self._account_statement_file or not os.path.exists(self._account_statement_file):
+            logger.error("provided file %s does not exist", self._account_statement_file)
+            return False
 
+        self.__parse_service_config()
         logger.info("Loading account statement")
         with codecs.open(self._account_statement_file, "r", encoding="utf-8-sig") as infile:
-            dialect = csv.Sniffer().sniff(infile.readline())
-            infile.seek(0)
-            account_statement = csv.DictReader(infile, dialect=dialect)
-
-            for statement in account_statement:
-                self.__process_statement(aggregate=aggregate, statement=statement)
-
-        if aggregate == "daily" or aggregate == "monthly":
-            self.__migrate_data_to_output()
-        return self.output_list
+            return self.__parse_account_statement_stream(infile, aggregate=aggregate)

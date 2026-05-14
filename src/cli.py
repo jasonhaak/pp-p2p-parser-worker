@@ -27,16 +27,16 @@ Default behaviour for now is 'transaction'.
 Copyright 2018-03-17 ChrisRBe
 """
 import argparse
+import codecs
 import logging
 import os
 import sys
 
 from src import p2p_statement_parser
-from src import portfolio_writer
 
 
 root_logger = logging.getLogger()
-logger = logging.getLogger("parse-account-statements")
+logger = logging.getLogger("src.cli")
 
 
 def setup_logging(loglevel=logging.INFO):
@@ -78,18 +78,20 @@ def parse_args():
         type=str,
         help="Specifies the p2p lending operator",
         choices=[
-            "bondora_go_grow",
             "bondora",
+            "bondora_go_grow",
             "debitumnetwork",
-            "estateguru",
-            "mintos",
+            "estateguru_de",
+            "estateguru_de_legacy",
+            "estateguru_en",
+            "lande",
+            "mintos_de",
+            "mintos_en",
             "robocash",
             "swaper",
-            "lande",
             "viainvest",
-            "estateguru_en",
         ],
-        default="mintos",
+        default="mintos_en",
     )
     arg_parser.add_argument(
         "--debug",
@@ -99,26 +101,15 @@ def parse_args():
         default=logging.INFO,
         help="enables debug level logging if set",
     )
+    arg_parser.add_argument(
+        "--output-language",
+        type=str,
+        help="Portfolio Performance CSV output language",
+        choices=["de", "en"],
+        default="de",
+    )
 
     return arg_parser.parse_args()
-
-
-def platform_factory(infile, operator_name="mintos"):
-    """
-    Return an object for the required Peer-to-Peer lending platform
-
-    :param operator_name: name of the P2P lending site, defaults to Mintos
-
-    :return: object for the actual lending platform parser, None if not supported
-    """
-    logger.info("Loading config for %s", operator_name)
-    config = os.path.join(os.path.dirname(__file__), "config", f"{operator_name}.yml")
-    if os.path.exists(config):
-        platform_parser = p2p_statement_parser.PeerToPeerPlatformParser(config, infile)
-        return platform_parser
-    else:
-        logging.error("The provided platform %s is currently not supported", operator_name)
-        return None
 
 
 def main():
@@ -135,43 +126,43 @@ def main():
     infile = options.infile
     p2p_operator_name = options.type
     aggregate = options.aggregate
+    output_language = options.output_language
 
     logger.info("Parsing peer to peer lending site account statements with the following options:")
     logger.info("Account statement file: %s", infile)
     logger.info("Peer to peer platform: %s", p2p_operator_name.upper())
     logger.info("Aggregation type: %s", aggregate.upper())
+    logger.info("Portfolio Performance output language: %s", output_language.upper())
 
     if not os.path.exists(infile):
         logger.error("provided file %s does not exist", infile)
         return False
 
-    platform_parser = platform_factory(infile, p2p_operator_name)
-    if not platform_parser:
-        return False
+    with codecs.open(infile, "r", encoding="utf-8-sig") as csv_input:
+        output_csv = p2p_statement_parser.parse_csv_text(
+            csv_text=csv_input.read(),
+            provider=p2p_operator_name,
+            aggregate=aggregate,
+            output_language=output_language,
+        )
 
-    statement_list = platform_parser.parse_account_statement(aggregate=aggregate)
-
-    if not statement_list:
+    if not output_csv:
         logger.warning(
             "No statements were found in the input file. Re-run with --debug to check for any unexpected statements"
         )
         return False
 
-    logger.info("Account statement parsing finished. Found (and aggregated) %s transactions", len(statement_list))
+    logger.info("Account statement parsing finished.")
     logger.info("Writing Portfolio Performance compatible CSV file.")
 
-    writer = portfolio_writer.PortfolioPerformanceWriter()
-    writer.init_output()
-    for entry in statement_list:
-        writer.update_output(entry)
-    writer.write_pp_csv_file(
-        os.path.join(
-            os.path.dirname(infile),
-            f"portfolio_performance__{p2p_operator_name}.csv",
-        )
+    outfile = os.path.join(
+        os.path.dirname(infile),
+        f"portfolio_performance__{p2p_operator_name}__{output_language}.csv",
     )
+    with codecs.open(outfile, "w", encoding="utf-8") as csv_output:
+        csv_output.write(output_csv)
     return True
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(0 if main() else 1)
