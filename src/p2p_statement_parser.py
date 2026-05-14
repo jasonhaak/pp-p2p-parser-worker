@@ -237,10 +237,10 @@ class PeerToPeerPlatformParser(object):
             }
 
     def __aggregate_statements_daily(self, formatted_account_entry):
-        self.__aggregate_statements(formatted_account_entry, "Tageszusammenfassung", False)
+        self.__aggregate_statements(formatted_account_entry, "Daily summary", False)
 
     def __aggregate_statements_monthly(self, formatted_account_entry):
-        self.__aggregate_statements(formatted_account_entry, "Monatszusammenfassung", True)
+        self.__aggregate_statements(formatted_account_entry, "Monthly summary", True)
 
     def __format_statement(self, statement):
         """

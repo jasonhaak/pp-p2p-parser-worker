@@ -20,7 +20,7 @@ class TestPortfolioPerformanceWriter(TestCase):
 
     def test_init_output(self):
         """test init_output"""
-        self.assertEqual(",".join(PP_FIELDNAMES), self.pp_writer.out_string_stream.getvalue().strip())
+        self.assertEqual("Datum,Wert,Buchungswährung,Typ,Notiz", self.pp_writer.out_string_stream.getvalue().strip())
 
     def test_update_output(self):
         """test update_output"""
@@ -28,12 +28,12 @@ class TestPortfolioPerformanceWriter(TestCase):
             PP_FIELDNAMES[0]: "date",
             PP_FIELDNAMES[1]: 123.456789,
             PP_FIELDNAMES[2]: "currency",
-            PP_FIELDNAMES[3]: "category",
+            PP_FIELDNAMES[3]: "Interest",
             PP_FIELDNAMES[4]: "note",
         }
         self.pp_writer.update_output(test_entry)
         self.assertEqual(
-            'Datum,Wert,Buchungswährung,Typ,Notiz\r\ndate,"123,45679",currency,category,note',
+            'Datum,Wert,Buchungswährung,Typ,Notiz\r\ndate,"123,45679",currency,Zinsen,note',
             self.pp_writer.out_string_stream.getvalue().strip(),
         )
 
@@ -45,7 +45,7 @@ class TestPortfolioPerformanceWriter(TestCase):
             PP_FIELDNAMES[0]: "date",
             PP_FIELDNAMES[1]: 123.456789,
             PP_FIELDNAMES[2]: "currency",
-            PP_FIELDNAMES[3]: "Zinsen",
+            PP_FIELDNAMES[3]: "Interest",
             PP_FIELDNAMES[4]: "note",
         }
         pp_writer.update_output(test_entry)
@@ -62,13 +62,28 @@ class TestPortfolioPerformanceWriter(TestCase):
             PP_FIELDNAMES[0]: "date",
             PP_FIELDNAMES[1]: 12.34,
             PP_FIELDNAMES[2]: "currency",
-            PP_FIELDNAMES[3]: "Zinsen",
-            PP_FIELDNAMES[4]: "Monatszusammenfassung",
+            PP_FIELDNAMES[3]: "Interest",
+            PP_FIELDNAMES[4]: "Monthly summary",
         }
         pp_writer.update_output(test_entry)
         self.assertEqual(
             'Date,Value,Transaction Currency,Type,Note\r\ndate,"12,34",currency,Interest,Monthly summary',
             pp_writer.out_string_stream.getvalue().strip(),
+        )
+
+    def test_update_output_german_translates_summary_notes(self):
+        """test update_output translates generated aggregation notes to German"""
+        test_entry = {
+            PP_FIELDNAMES[0]: "date",
+            PP_FIELDNAMES[1]: 12.34,
+            PP_FIELDNAMES[2]: "currency",
+            PP_FIELDNAMES[3]: "Interest",
+            PP_FIELDNAMES[4]: "Monthly summary",
+        }
+        self.pp_writer.update_output(test_entry)
+        self.assertEqual(
+            'Datum,Wert,Buchungswährung,Typ,Notiz\r\ndate,"12,34",currency,Zinsen,Monatszusammenfassung',
+            self.pp_writer.out_string_stream.getvalue().strip(),
         )
 
     def test_rejects_unknown_output_language(self):
@@ -108,4 +123,4 @@ class TestPortfolioPerformanceWriter(TestCase):
 
     def test_get_output(self):
         """test get_output"""
-        self.assertEqual(",".join(PP_FIELDNAMES), self.pp_writer.get_output())
+        self.assertEqual("Datum,Wert,Buchungswährung,Typ,Notiz", self.pp_writer.get_output())

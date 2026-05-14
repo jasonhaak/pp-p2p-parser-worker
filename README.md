@@ -104,16 +104,15 @@ This Worker supports three aggregation modes:
 | `daily` | Supported rows are grouped by booking date and mapped transaction type. Values in each group are summed. The output note is `Tageszusammenfassung` in German output and `Daily summary` in English output. The first currency seen for the group is used. |
 | `monthly` | Supported rows are grouped by month and mapped transaction type. Values in each group are summed and the output date is set to the last day of that month. The output note is `Monatszusammenfassung` in German output and `Monthly summary` in English output. Monthly rows for the current month may be dated in the future and can be ignored by Portfolio Performance. |
 
-### Portfolio Performance Output
-
-At the final CSV writing step, the selected output language controls the exported column headers, transaction type labels and generated aggregation notes. Provider detection and parsing are independent from the output language.
+### Portfolio Performance Language
+The parser uses an English internal transaction model: `Date`, `Value`, `Currency`, `Type` and `Note`, with transaction types such as `Deposit`, `Withdrawal`, `Interest` and `Fees`. At the final CSV writing step, the selected output language controls the exported column headers, transaction type labels and generated aggregation notes. Provider detection and parsing are independent of the output language.
 
 | Output Language | Header | Transaction Types |
 | --- | --- | --- |
 | `de` | `Datum,Wert,Buchungswährung,Typ,Notiz` | `Einlage`, `Entnahme`, `Zinsen`, `Gebühren` |
 | `en` | `Date,Value,Transaction Currency,Type,Note` | `Deposit`, `Withdrawal`, `Interest`, `Fees` |
 
-### Parsing & Conversion
+### Conversion
 When the user clicks **Convert**, the browser sends the CSV file and selected options to `POST /parse`. The Worker validates the provider, aggregation mode, output language and CSV content.
 
 Each supported row is mapped to a Portfolio Performance account transaction category by matching the provider-specific transaction description against configured regular expressions. Unsupported or intentionally ignored transaction descriptions are skipped. Input values with comma or dot decimal separators, including common thousands-separator formats, are normalized before conversion. The provider currency column is used when available. Providers without a currency column default to `EUR`.

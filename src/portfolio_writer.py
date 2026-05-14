@@ -10,24 +10,24 @@ import logging
 from decimal import Decimal
 
 
-PP_FIELDNAMES = ["Datum", "Wert", "Buchungswährung", "Typ", "Notiz"]
+PP_FIELDNAMES = ["Date", "Value", "Currency", "Type", "Note"]
 PP_OUTPUT_LANGUAGES = ("de", "en")
 PP_OUTPUT_FIELDNAMES = {
-    "de": PP_FIELDNAMES,
+    "de": ["Datum", "Wert", "Buchungswährung", "Typ", "Notiz"],
     "en": ["Date", "Value", "Transaction Currency", "Type", "Note"],
 }
 PP_TYPE_TRANSLATIONS = {
-    "en": {
-        "Einlage": "Deposit",
-        "Entnahme": "Withdrawal",
-        "Zinsen": "Interest",
-        "Gebühren": "Fees",
+    "de": {
+        "Deposit": "Einlage",
+        "Withdrawal": "Entnahme",
+        "Interest": "Zinsen",
+        "Fees": "Gebühren",
     },
 }
 PP_NOTE_TRANSLATIONS = {
-    "en": {
-        "Tageszusammenfassung": "Daily summary",
-        "Monatszusammenfassung": "Monthly summary",
+    "de": {
+        "Daily summary": "Tageszusammenfassung",
+        "Monthly summary": "Monatszusammenfassung",
     },
 }
 logger = logging.getLogger(__name__)

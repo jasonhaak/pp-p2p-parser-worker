@@ -33,10 +33,10 @@ class Statement:
         value = self.get_value()
 
         regex_to_category_mappings = [
-            {"regex": self._config.get_relevant_income_regex(), "category": "Zinsen"},
-            {"regex": self._config.get_relevant_invest_regex(), "category": "Einlage"},
-            {"regex": self._config.get_relevant_payment_regex(), "category": "Entnahme"},
-            {"regex": self._config.get_relevant_fee_regex(), "category": "Gebühren"},
+            {"regex": self._config.get_relevant_income_regex(), "category": "Interest"},
+            {"regex": self._config.get_relevant_invest_regex(), "category": "Deposit"},
+            {"regex": self._config.get_relevant_payment_regex(), "category": "Withdrawal"},
+            {"regex": self._config.get_relevant_fee_regex(), "category": "Fees"},
             {"regex": self._config.get_special_entry_regex(), "category": "Undecided"},
             {"regex": self._config.get_ignorable_entry_regex(), "category": "Ignored"},
         ]
@@ -159,10 +159,10 @@ class Statement:
 
         :param value: how much money was returned/paid
 
-        :return: Zinsen if value >= 0 Gebühren in any other case
+        :return: Interest if value >= 0, Fees in any other case
         """
 
         if value >= 0:
-            return "Zinsen"
+            return "Interest"
         else:
-            return "Gebühren"
+            return "Fees"
