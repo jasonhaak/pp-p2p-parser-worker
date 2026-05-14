@@ -24,6 +24,12 @@ PP_TYPE_TRANSLATIONS = {
         "Gebühren": "Fees",
     },
 }
+PP_NOTE_TRANSLATIONS = {
+    "en": {
+        "Tageszusammenfassung": "Daily summary",
+        "Monatszusammenfassung": "Monthly summary",
+    },
+}
 logger = logging.getLogger(__name__)
 
 
@@ -84,10 +90,15 @@ class PortfolioPerformanceWriter(object):
 
         value_fieldname = PP_OUTPUT_FIELDNAMES[self.output_language][1]
         type_fieldname = PP_OUTPUT_FIELDNAMES[self.output_language][3]
+        note_fieldname = PP_OUTPUT_FIELDNAMES[self.output_language][4]
         output_statement[value_fieldname] = PortfolioPerformanceWriter.format_value(output_statement[value_fieldname])
         output_statement[type_fieldname] = PP_TYPE_TRANSLATIONS.get(self.output_language, {}).get(
             output_statement[type_fieldname],
             output_statement[type_fieldname],
+        )
+        output_statement[note_fieldname] = PP_NOTE_TRANSLATIONS.get(self.output_language, {}).get(
+            output_statement[note_fieldname],
+            output_statement[note_fieldname],
         )
         return output_statement
 

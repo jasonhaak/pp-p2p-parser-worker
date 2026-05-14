@@ -54,6 +54,23 @@ class TestPortfolioPerformanceWriter(TestCase):
             pp_writer.out_string_stream.getvalue().strip(),
         )
 
+    def test_update_output_english_translates_summary_notes(self):
+        """test update_output translates generated aggregation notes"""
+        pp_writer = PortfolioPerformanceWriter(output_language="en")
+        pp_writer.init_output()
+        test_entry = {
+            PP_FIELDNAMES[0]: "date",
+            PP_FIELDNAMES[1]: 12.34,
+            PP_FIELDNAMES[2]: "currency",
+            PP_FIELDNAMES[3]: "Zinsen",
+            PP_FIELDNAMES[4]: "Monatszusammenfassung",
+        }
+        pp_writer.update_output(test_entry)
+        self.assertEqual(
+            'Date,Value,Transaction Currency,Type,Note\r\ndate,"12,34",currency,Interest,Monthly summary',
+            pp_writer.out_string_stream.getvalue().strip(),
+        )
+
     def test_rejects_unknown_output_language(self):
         """test unsupported output language validation"""
         with self.assertRaises(ValueError):
