@@ -20,7 +20,7 @@
             <h1 id="title">PP-P2P Parser</h1>
             <p>
               Convert exported account statement CSV files from supported P2P platforms into a Portfolio Performance
-              import file for interest, fees, deposits, and withdrawals.
+              import file for interest, fees, deposits and withdrawals.
             </p>
           </div>
         </div>
@@ -29,6 +29,15 @@
           <section class="note">
             <p>The uploaded file is not stored. It is only read for the conversion and then discarded.</p>
           </section>
+
+          <label class="field file-input">
+            <span>Statement CSV</span>
+            <input id="file" name="file" type="file" accept=".csv,text/csv" required />
+            <span class="file-control" aria-hidden="true">
+              <span class="file-button">Upload CSV file</span>
+              <span id="file-name" class="file-name">No file selected</span>
+            </span>
+          </label>
 
           <label class="field">
             <span>Provider</span>
@@ -51,18 +60,18 @@
 
           <fieldset class="aggregation" aria-labelledby="aggregation-title">
             <legend id="aggregation-title">Aggregation modes</legend>
-            <div class="mode-grid">
-              <label class="mode-card">
+            <div class="option-grid">
+              <label class="option-card">
                 <input type="radio" name="aggregate" value="transaction" checked />
                 <strong>Transaction</strong>
                 <span>Exports each supported booking as a separate row.</span>
               </label>
-              <label class="mode-card">
+              <label class="option-card">
                 <input type="radio" name="aggregate" value="daily" />
                 <strong>Daily</strong>
                 <span>Summarizes bookings of the same type per day.</span>
               </label>
-              <label class="mode-card">
+              <label class="option-card">
                 <input type="radio" name="aggregate" value="monthly" />
                 <strong>Monthly</strong>
                 <span>Summarizes bookings of the same type on the last day of each month.</span>
@@ -70,14 +79,21 @@
             </div>
           </fieldset>
 
-          <label class="field file-input">
-            <span>Statement CSV</span>
-            <input id="file" name="file" type="file" accept=".csv,text/csv" required />
-            <span class="file-control" aria-hidden="true">
-              <span class="file-button">Upload CSV file</span>
-              <span id="file-name" class="file-name">No file selected</span>
-            </span>
-          </label>
+          <fieldset class="option-group" aria-labelledby="output-language-title">
+            <legend id="output-language-title">Portfolio Performance language</legend>
+            <div class="option-grid two-column">
+              <label class="option-card">
+                <input type="radio" name="output_language" value="de" checked />
+                <strong>German</strong>
+                <span>Exports German column names and transaction types.</span>
+              </label>
+              <label class="option-card">
+                <input type="radio" name="output_language" value="en" />
+                <strong>English</strong>
+                <span>Exports English column names and transaction types.</span>
+              </label>
+            </div>
+          </fieldset>
 
           <div class="actions">
             <button id="submit" type="submit">Convert</button>

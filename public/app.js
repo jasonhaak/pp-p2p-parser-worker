@@ -4,7 +4,7 @@ const fileInput = document.querySelector("#file");
 const fileName = document.querySelector("#file-name");
 const submitButton = document.querySelector("#submit");
 const statusText = document.querySelector("#status");
-const modeInputs = document.querySelectorAll('input[name="aggregate"]');
+const optionInputs = document.querySelectorAll(".option-card input");
 
 if (window.self !== window.top || new URLSearchParams(window.location.search).get("embedded") === "true") {
   document.body.classList.add("embedded");
@@ -67,10 +67,10 @@ fileInput.addEventListener("change", async () => {
   }
 });
 
-modeInputs.forEach((input) => {
-  input.addEventListener("change", updateModeSelection);
+optionInputs.forEach((input) => {
+  input.addEventListener("change", updateOptionSelection);
 });
-updateModeSelection();
+updateOptionSelection();
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -113,9 +113,9 @@ function setStatus(message, isError = false) {
   statusText.classList.toggle("error", isError);
 }
 
-function updateModeSelection() {
-  modeInputs.forEach((input) => {
-    input.closest(".mode-card").classList.toggle("selected", input.checked);
+function updateOptionSelection() {
+  optionInputs.forEach((input) => {
+    input.closest(".option-card").classList.toggle("selected", input.checked);
   });
 }
 

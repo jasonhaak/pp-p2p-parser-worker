@@ -101,6 +101,13 @@ def parse_args():
         default=logging.INFO,
         help="enables debug level logging if set",
     )
+    arg_parser.add_argument(
+        "--output-language",
+        type=str,
+        help="Portfolio Performance CSV output language",
+        choices=["de", "en"],
+        default="de",
+    )
 
     return arg_parser.parse_args()
 
@@ -119,11 +126,13 @@ def main():
     infile = options.infile
     p2p_operator_name = options.type
     aggregate = options.aggregate
+    output_language = options.output_language
 
     logger.info("Parsing peer to peer lending site account statements with the following options:")
     logger.info("Account statement file: %s", infile)
     logger.info("Peer to peer platform: %s", p2p_operator_name.upper())
     logger.info("Aggregation type: %s", aggregate.upper())
+    logger.info("Portfolio Performance output language: %s", output_language.upper())
 
     if not os.path.exists(infile):
         logger.error("provided file %s does not exist", infile)
@@ -134,6 +143,7 @@ def main():
             csv_text=csv_input.read(),
             provider=p2p_operator_name,
             aggregate=aggregate,
+            output_language=output_language,
         )
 
     if not output_csv:
@@ -145,7 +155,10 @@ def main():
     logger.info("Account statement parsing finished.")
     logger.info("Writing Portfolio Performance compatible CSV file.")
 
-    outfile = os.path.join(os.path.dirname(infile), f"portfolio_performance__{p2p_operator_name}.csv")
+    outfile = os.path.join(
+        os.path.dirname(infile),
+        f"portfolio_performance__{p2p_operator_name}__{output_language}.csv",
+    )
     with codecs.open(outfile, "w", encoding="utf-8") as csv_output:
         csv_output.write(output_csv)
     return True

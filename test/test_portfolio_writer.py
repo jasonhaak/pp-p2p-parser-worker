@@ -37,6 +37,28 @@ class TestPortfolioPerformanceWriter(TestCase):
             self.pp_writer.out_string_stream.getvalue().strip(),
         )
 
+    def test_update_output_english(self):
+        """test update_output with English Portfolio Performance labels"""
+        pp_writer = PortfolioPerformanceWriter(output_language="en")
+        pp_writer.init_output()
+        test_entry = {
+            PP_FIELDNAMES[0]: "date",
+            PP_FIELDNAMES[1]: 123.456789,
+            PP_FIELDNAMES[2]: "currency",
+            PP_FIELDNAMES[3]: "Zinsen",
+            PP_FIELDNAMES[4]: "note",
+        }
+        pp_writer.update_output(test_entry)
+        self.assertEqual(
+            'Date,Value,Transaction Currency,Type,Note\r\ndate,"123,45679",currency,Interest,note',
+            pp_writer.out_string_stream.getvalue().strip(),
+        )
+
+    def test_rejects_unknown_output_language(self):
+        """test unsupported output language validation"""
+        with self.assertRaises(ValueError):
+            PortfolioPerformanceWriter(output_language="fr")
+
     def test_update_output_umlaut(self):
         """test update_output with umlauts"""
         test_entry = {

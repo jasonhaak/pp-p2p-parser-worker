@@ -11,6 +11,19 @@ from decimal import Decimal
 
 
 PP_FIELDNAMES = ["Datum", "Wert", "Buchungswährung", "Typ", "Notiz"]
+PP_OUTPUT_LANGUAGES = ("de", "en")
+PP_OUTPUT_FIELDNAMES = {
+    "de": PP_FIELDNAMES,
+    "en": ["Date", "Value", "Transaction Currency", "Type", "Note"],
+}
+PP_TYPE_TRANSLATIONS = {
+    "en": {
+        "Einlage": "Deposit",
+        "Entnahme": "Withdrawal",
+        "Zinsen": "Interest",
+        "Gebühren": "Fees",
+    },
+}
 logger = logging.getLogger(__name__)
 
 
@@ -19,14 +32,19 @@ class PortfolioPerformanceWriter(object):
     Writing parsed Peer-to-Peer lending account statements to Portfolio Performance compatible format
     """
 
-    def __init__(self, dialect="excel"):
+    def __init__(self, dialect="excel", output_language="de"):
         """
         constructor for class
 
         :param dialect: translates to the used CSV dialect, defaults to excel
+        :param output_language: Portfolio Performance language for headers and transaction types
         """
+        if output_language not in PP_OUTPUT_LANGUAGES:
+            raise ValueError("Unsupported Portfolio Performance output language: {}".format(output_language))
+
         self.dialect = dialect
-        self.out_csv_fieldnames = PP_FIELDNAMES
+        self.output_language = output_language
+        self.out_csv_fieldnames = PP_OUTPUT_FIELDNAMES[output_language]
         self.out_string_stream = io.StringIO()
         self.out_csv_writer = None
 
@@ -51,16 +69,27 @@ class PortfolioPerformanceWriter(object):
         :return:
         """
         if statement_dict:
-            statement_dict[PP_FIELDNAMES[1]] = PortfolioPerformanceWriter.format_value(
-                statement_dict[PP_FIELDNAMES[1]]
-            )
-            self.out_csv_writer.writerow(statement_dict)
+            self.out_csv_writer.writerow(self.__format_output_statement(statement_dict))
 
     def get_output(self):
         """
         Return the complete Portfolio Performance CSV output as a string.
         """
         return self.out_string_stream.getvalue().strip()
+
+    def __format_output_statement(self, statement_dict):
+        output_statement = {}
+        for source_fieldname, output_fieldname in zip(PP_FIELDNAMES, self.out_csv_fieldnames):
+            output_statement[output_fieldname] = statement_dict[source_fieldname]
+
+        value_fieldname = PP_OUTPUT_FIELDNAMES[self.output_language][1]
+        type_fieldname = PP_OUTPUT_FIELDNAMES[self.output_language][3]
+        output_statement[value_fieldname] = PortfolioPerformanceWriter.format_value(output_statement[value_fieldname])
+        output_statement[type_fieldname] = PP_TYPE_TRANSLATIONS.get(self.output_language, {}).get(
+            output_statement[type_fieldname],
+            output_statement[type_fieldname],
+        )
+        return output_statement
 
     @staticmethod
     def format_value(value):

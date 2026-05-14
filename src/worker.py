@@ -9,13 +9,22 @@ from urllib.parse import urlparse
 from workers import Response
 from workers import WorkerEntrypoint
 
-from src.p2p_statement_parser import ParserInputError
-from src.p2p_statement_parser import detect_provider_from_csv_text
-from src.p2p_statement_parser import parse_csv_text
-from src.provider_configs import PROVIDER_CONFIGS
+try:
+    from src.p2p_statement_parser import ParserInputError
+    from src.p2p_statement_parser import detect_provider_from_csv_text
+    from src.p2p_statement_parser import parse_csv_text
+    from src.provider_configs import PROVIDER_CONFIGS
+except ModuleNotFoundError as exc:
+    if exc.name != "src":
+        raise
+    from p2p_statement_parser import ParserInputError
+    from p2p_statement_parser import detect_provider_from_csv_text
+    from p2p_statement_parser import parse_csv_text
+    from provider_configs import PROVIDER_CONFIGS
 
 
 AGGREGATES = {"transaction", "daily", "monthly"}
+OUTPUT_LANGUAGES = {"de", "en"}
 AUTO_PROVIDER = "auto"
 
 
@@ -40,12 +49,15 @@ async def parse_request(request):
         form_data = await read_form_data(request)
         provider = form_value(form_data.get("provider"), "auto")
         aggregate = form_value(form_data.get("aggregate"), "transaction")
+        output_language = form_value(form_data.get("output_language"), "de")
         file_part = form_data.get("file")
 
         if provider != AUTO_PROVIDER and provider not in PROVIDER_CONFIGS:
             return json_response({"error": "Unsupported provider"}, status=400)
         if aggregate not in AGGREGATES:
             return json_response({"error": "Unsupported aggregate mode"}, status=400)
+        if output_language not in OUTPUT_LANGUAGES:
+            return json_response({"error": "Unsupported output language"}, status=400)
         if file_part is None:
             return json_response({"error": "CSV file is required"}, status=400)
 
@@ -55,7 +67,12 @@ async def parse_request(request):
 
         detected_provider = detect_provider_from_csv_text(csv_text)
         selected_provider = detected_provider if provider == AUTO_PROVIDER else provider
-        output_csv = parse_csv_text(csv_text=csv_text, provider=provider, aggregate=aggregate)
+        output_csv = parse_csv_text(
+            csv_text=csv_text,
+            provider=provider,
+            aggregate=aggregate,
+            output_language=output_language,
+        )
         if not output_csv:
             return json_response(
                 {
@@ -65,7 +82,10 @@ async def parse_request(request):
                 status=422,
             )
 
-        filename = "portfolio_performance__{}.csv".format(safe_filename(selected_provider))
+        filename = "portfolio_performance__{}__{}.csv".format(
+            safe_filename(selected_provider),
+            safe_filename(output_language),
+        )
         headers = {
             "Content-Type": "text/csv; charset=utf-8",
             "Content-Disposition": 'attachment; filename="{}"'.format(filename),

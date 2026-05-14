@@ -11,11 +11,22 @@ import io
 import logging
 import os
 
-from src.p2p_config import Config
-from src.portfolio_writer import PP_FIELDNAMES
-from src.portfolio_writer import PortfolioPerformanceWriter
-from src.provider_configs import PROVIDER_CONFIGS
-from src.statement import Statement
+try:
+    from src.p2p_config import Config
+    from src.portfolio_writer import PP_FIELDNAMES
+    from src.portfolio_writer import PP_OUTPUT_LANGUAGES
+    from src.portfolio_writer import PortfolioPerformanceWriter
+    from src.provider_configs import PROVIDER_CONFIGS
+    from src.statement import Statement
+except ModuleNotFoundError as exc:
+    if exc.name != "src":
+        raise
+    from p2p_config import Config
+    from portfolio_writer import PP_FIELDNAMES
+    from portfolio_writer import PP_OUTPUT_LANGUAGES
+    from portfolio_writer import PortfolioPerformanceWriter
+    from provider_configs import PROVIDER_CONFIGS
+    from statement import Statement
 
 
 logger = logging.getLogger(__name__)
@@ -127,15 +138,19 @@ def validate_provider_headers(csv_text, provider):
         raise ParserInputError(message)
 
 
-def parse_csv_text(csv_text, provider="mintos_en", aggregate="transaction"):
+def parse_csv_text(csv_text, provider="mintos_en", aggregate="transaction", output_language="de"):
     """
     Parse uploaded account statement CSV content and return Portfolio Performance CSV content.
 
     :param csv_text: account statement CSV data as text
     :param provider: supported P2P lending provider name
     :param aggregate: transaction, daily, or monthly
+    :param output_language: Portfolio Performance output language, de or en
     :return: Portfolio Performance CSV data as text, or False if no matching statements were found
     """
+    if output_language not in PP_OUTPUT_LANGUAGES:
+        raise ValueError("Unsupported Portfolio Performance output language: {}".format(output_language))
+
     if provider == "auto":
         provider = detect_provider_from_csv_text(csv_text)
         if not provider:
@@ -152,7 +167,7 @@ def parse_csv_text(csv_text, provider="mintos_en", aggregate="transaction"):
     if not statement_list:
         return False
 
-    writer = PortfolioPerformanceWriter()
+    writer = PortfolioPerformanceWriter(output_language=output_language)
     writer.init_output()
     for entry in statement_list:
         writer.update_output(entry)
