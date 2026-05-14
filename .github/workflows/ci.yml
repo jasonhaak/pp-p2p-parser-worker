@@ -40,7 +40,16 @@ jobs:
           python -m pip install coverage==7.2.4
 
       - name: Validate Worker bundle
-        run: npx wrangler deploy --dry-run
+        run: npx wrangler@ deploy --dry-run
+
+      - name: Check Python syntax
+        run: python -m py_compile src/*.py tools/*.py
+
+      - name: Check CLI entrypoint
+        run: python -m src.cli --help
+
+      - name: Check frontend JavaScript syntax
+        run: node --check public/app.js
 
       - name: Run Python tests
         if: github.event_name == 'pull_request'
@@ -52,15 +61,6 @@ jobs:
           coverage run --source=src -m unittest discover -s test -q
           coverage xml
           coverage html -d coverage
-
-      - name: Check Python syntax
-        run: python -m py_compile src/*.py
-
-      - name: Check CLI entrypoint
-        run: python -m src.cli --help
-
-      - name: Check frontend JavaScript syntax
-        run: node --check public/app.js
 
       - name: Upload coverage report
         if: github.event_name == 'push'
