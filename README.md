@@ -1,7 +1,7 @@
-# pp-p2p-parser-ui
-[![Release](https://img.shields.io/github/v/release/jasonhaak/pp-p2p-parser-ui)](https://github.com/jasonhaak/pp-p2p-parser-ui/releases/latest)
-[![CI](https://img.shields.io/github/actions/workflow/status/jasonhaak/pp-p2p-parser-ui/ci.yml?branch=main&logo=github)](https://github.com/jasonhaak/pp-p2p-parser-ui/actions/workflows/ci.yml)
-[![Coverage](https://codecov.io/github/jasonhaak/pp-p2p-parser-ui/graph/badge.svg)](https://codecov.io/github/jasonhaak/pp-p2p-parser-ui)
+# pp-p2p-parser-worker
+[![Release](https://img.shields.io/github/v/release/jasonhaak/pp-p2p-parser-worker)](https://github.com/jasonhaak/pp-p2p-parser-worker/releases/latest)
+[![CI](https://img.shields.io/github/actions/workflow/status/jasonhaak/pp-p2p-parser-worker/ci.yml?branch=main&logo=github)](https://github.com/jasonhaak/pp-p2p-parser-worker/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/github/jasonhaak/pp-p2p-parser-worker/graph/badge.svg)](https://codecov.io/github/jasonhaak/pp-p2p-parser-worker)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare)](https://workers.cloudflare.com/)
 
 A Cloudflare Worker for converting an exported P2P account statement `.csv` into a Portfolio Performance compatible `.csv` file. The Worker accepts a statement export, detects or uses the selected provider format, applies optional aggregation and returns a downloadable import file for Portfolio Performance.
@@ -37,8 +37,8 @@ Cloudflare always requires a code source (repository or ZIP) to deploy a Worker.
 - **ZIP (manual upload)**: Download the code as a ZIP file and prepare it for upload.
 
 ### 2. Add a Worker in Cloudflare
-- Log in to the [Cloudflare Dashboard](https://dash.cloudflare.com/).
-- Navigate to **Workers & Pages -> Workers** and create a new Worker with the name `cloudflare-outlook-calendar-worker`.
+1. Log in to the [Cloudflare Dashboard](https://dash.cloudflare.com/).
+2. Navigate to **Workers & Pages -> Workers** and create a new Worker with the name `pp-p2p-parser-worker`.
 
 ### 3. Deploy
 - **Cloudflare Git integration (recommended)**: Connect your forked repository directly to your GitHub/GitLab account in the Cloudflare Dashboard. Cloudflare will build and deploy automatically. Additional information about the Git integration for Cloudflare Workers can be found in the [Cloudflare documentation](https://developers.cloudflare.com/workers/ci-cd/builds/).
@@ -122,8 +122,8 @@ Finally, the Worker returns a downloadable Portfolio Performance CSV file. If an
 ## Installation & Development
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/jasonhaak/pp-p2p-parser-ui.git
-   cd pp-p2p-parser-ui
+   git clone https://github.com/jasonhaak/pp-p2p-parser-worker.git
+   cd pp-p2p-parser-worker
    ```
 
 2. **Install Dependencies**
